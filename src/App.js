@@ -32,8 +32,9 @@ function App() {
               </Text>
             </Checkbox>
             <Space size={"small"}>
-              <Button type="link">Create</Button>
+              <Button type="link">View transpiled code</Button>
               <Button type="link">Assist me</Button>
+              <Button type="link">Create</Button>
               <Button type="link">Save</Button>
               <Button type="link" danger>
                 Delete
