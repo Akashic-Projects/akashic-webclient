@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Modal, Button, Layout } from "antd";
+import { Modal, Layout } from "antd";
 
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/theme-xcode";
 
 const { Content } = Layout;
 
@@ -102,7 +102,7 @@ const Editor = (props) => {
     >
       <AceEditor
         mode="json"
-        theme="xcode"
+        //theme="xcode"
         name="UNIQUE_ID_OF_DIV"
         editorProps={{ $blockScrolling: true }}
         onLoad={handleOnEditorLoad}

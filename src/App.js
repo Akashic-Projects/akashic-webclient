@@ -4,19 +4,53 @@ import { Layout, Typography, Button, Space, Checkbox, Input, Tabs } from "antd";
 import Editor from "./components/Editor";
 import RuleList from "./components/RuleList";
 
+import Constsnts from "./constants/networking";
+
 const { Header, Sider } = Layout;
 const { Text } = Typography;
 const { TabPane } = Tabs;
 
 function App() {
-  const [isPausedServer, setIsPausedServer] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const handlePauseServer = () => {
-    setIsPausedServer(true);
+  const handleConnect = () => {
+    setIsConnected(true);
   };
 
-  const handleResumeServer = () => {
-    setIsPausedServer(false);
+  const handleDisconenct = () => {
+    setIsConnected(false);
+  };
+
+  const createRule = (uri) => {
+    return fetch(uri, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        "rule-name": "Test count rule",
+        salience: 100,
+        when: [
+          { "?broj": "count(User.id > 1 and Course.name == 'Analiza 1')" },
+          { assert: "test[?broj > User.age]" },
+        ],
+        then: [{ read: "Some value" }],
+      }),
+    })
+      .then((response) => response.json())
+      .then((responseJson) => {
+        console.log(responseJson);
+        return responseJson;
+      })
+      .catch((error) => {
+        console.error("Error: " + error);
+      });
+  };
+
+  const handleRuleCreateButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/rules`;
+    createRule(uri);
   };
 
   return (
@@ -39,7 +73,9 @@ function App() {
             <Space size={"small"}>
               <Button type="link">View transpiled code</Button>
               <Button type="link">Assist me</Button>
-              <Button type="link">Create</Button>
+              <Button type="link" onClick={handleRuleCreateButtonClick}>
+                Create
+              </Button>
               <Button type="link">Save</Button>
               <Button type="link" danger>
                 Delete
@@ -67,14 +103,13 @@ function App() {
                     onChange={() => {}}
                   />
 
-                  <Button type="primary">Connect</Button>
-                  {!isPausedServer ? (
-                    <Button type="primary" danger onClick={handlePauseServer}>
-                      Pause akashic server
+                  {!isConnected ? (
+                    <Button type="primary" onClick={handleConnect}>
+                      Connect
                     </Button>
                   ) : (
-                    <Button type="primary" warning onClick={handleResumeServer}>
-                      Resume akashic server
+                    <Button type="primary" danger onClick={handleDisconenct}>
+                      Disconnect
                     </Button>
                   )}
                 </Space>
@@ -82,14 +117,8 @@ function App() {
               <TabPane tab="Rules" key="1">
                 <RuleList style={{ height: "100%" }} />
               </TabPane>
-              <TabPane tab="Rule groups" key="2">
-                Content of card tab 2
-              </TabPane>
               <TabPane tab="DSDs" key="3">
                 Content of card tab 3
-              </TabPane>
-              <TabPane tab="DSD groups" key="4">
-                Content of card tab 4
               </TabPane>
             </Tabs>
           </Sider>

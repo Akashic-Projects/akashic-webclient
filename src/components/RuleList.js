@@ -8,14 +8,7 @@ const columns = [
     title: "Rule Name",
     dataIndex: "name",
     width: 500,
-    render: (text, row) => (
-      <div>
-        <Text strong>Rule name:</Text> {text}
-        <br />
-        <Text type="secondary">> {row.group}</Text>
-        <br />
-      </div>
-    ),
+    render: (text, row) => <div>{text}</div>,
   },
 ];
 
