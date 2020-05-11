@@ -7,7 +7,7 @@ const columns = [
   {
     title: "Rule Name",
     dataIndex: "name",
-    width: 300,
+    width: 500,
     render: (text, row) => (
       <div>
         <Text strong>Rule name:</Text> {text}
@@ -60,9 +60,6 @@ const RuleList = () => {
     <Table
       columns={columns}
       dataSource={data}
-      scroll={{
-        y: 500,
-      }}
       pagination={{
         position: ["bottomCenter"],
       }}

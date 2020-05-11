@@ -81,8 +81,8 @@ const Editor = (props) => {
     ranges.forEach((el) => {
       if (Math.abs(el.start.column - el.end.column) >= 2) {
         // Add marker to editor
-        // let markerID = editor.session.addMarker(el, "ace_step", "text");
-        let markerID = editor.session.addMarker(el, "ace_bracket", "text");
+        let markerID = editor.session.addMarker(el, "ace_step", "text");
+        // let markerID = editor.session.addMarker(el, "ace_bracket", "text");
 
         // Add marker ID to marker list
         markerIDs = [...markerIDs, markerID];
@@ -102,12 +102,12 @@ const Editor = (props) => {
     >
       <AceEditor
         mode="json"
-        theme="monokai"
+        theme="xcode"
         name="UNIQUE_ID_OF_DIV"
         editorProps={{ $blockScrolling: true }}
         onLoad={handleOnEditorLoad}
         onChange={handleOnChange}
-        style={{ height: 400, width: "100%" }}
+        style={{ height: "89vh", width: "100%" }}
       />
       <Modal
         title="Basic Modal"
@@ -123,9 +123,9 @@ const Editor = (props) => {
         <p>Some contents...</p>
         <p>Some contents...</p>
       </Modal>
-      <Button type="primary" onClick={showModal}>
+      {/* <Button type="primary" onClick={showModal}>
         Open Modal
-      </Button>
+      </Button> */}
     </Content>
   );
 };
