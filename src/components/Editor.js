@@ -3,7 +3,7 @@ import { Modal, Layout } from "antd";
 
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/theme-xcode";
+//import "ace-builds/src-noconflict/theme-xcode";
 
 const { Content } = Layout;
 
@@ -93,23 +93,16 @@ const Editor = (props) => {
   };
 
   return (
-    <Content
-      className="site-layout-background"
-      style={{
-        margin: 0,
-        height: "100%",
-      }}
-    >
-      <AceEditor
-        mode="json"
-        //theme="xcode"
-        name="UNIQUE_ID_OF_DIV"
-        editorProps={{ $blockScrolling: true }}
-        onLoad={handleOnEditorLoad}
-        onChange={handleOnChange}
-        style={{ height: "89vh", width: "100%" }}
-      />
-      <Modal
+    <AceEditor
+      mode="json"
+      //theme="xcode"
+      name="UNIQUE_ID_OF_DIV"
+      editorProps={{ $blockScrolling: true }}
+      onLoad={handleOnEditorLoad}
+      onChange={handleOnChange}
+      style={props.style}
+    />
+    /* <Modal
         title="Basic Modal"
         visible={modalVisible}
         onOk={() => {
@@ -122,11 +115,10 @@ const Editor = (props) => {
         <p>Some contents...</p>
         <p>Some contents...</p>
         <p>Some contents...</p>
-      </Modal>
-      {/* <Button type="primary" onClick={showModal}>
+      </Modal> */
+    /* <Button type="primary" onClick={showModal}>
         Open Modal
-      </Button> */}
-    </Content>
+      </Button> */
   );
 };
 
