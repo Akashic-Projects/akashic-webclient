@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Typography, Button, Space, Input, Tabs } from "antd";
 
-import Editor from "./components/Editor";
+import MyAceEditor from "./components/MyAceEditorFunc";
 import RuleList from "./components/RuleList";
 
 import Constsnts from "./constants/networking";
@@ -14,31 +14,39 @@ const { TextArea } = Input;
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [logText, setLogText] = useState("ERROR: This is a test.");
+  const [currentTabKey, setCurrentTabKey] = useState("0");
 
-  const handleConnect = () => {
+  const [editorText, setEditorText] = useState("");
+  const [editorCurPos, setEditorCurPos] = useState({ ln: 1, col: 1 });
+
+  const handleOnConnect = () => {
     setIsConnected(true);
   };
 
-  const handleDisconenct = () => {
+  const handleOnDisconenct = () => {
     setIsConnected(false);
   };
 
-  const createRule = (uri) => {
+  const handleOnTabChange = (key) => {
+    setCurrentTabKey(key);
+  };
+
+  const handleOnEditorTextChange = (text) => {
+    setEditorText(text);
+  };
+
+  const handleOnEditorCursorChange = (curPos) => {
+    setEditorCurPos(curPos);
+  };
+
+  const createRule = (uri, content) => {
     return fetch(uri, {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        "rule-name": "Test count rule",
-        salience: 100,
-        when: [
-          { "?broj": "count(User.id > 1 and Course.name == 'Analiza 1')" },
-          { assert: "test[?broj > User.age]" },
-        ],
-        then: [{ read: "Some value" }],
-      }),
+      body: content,
     })
       .then((response) => response.json())
       .then((responseJson) => {
@@ -50,9 +58,13 @@ function App() {
       });
   };
 
-  const handleRuleCreateButtonClick = () => {
-    const uri = `${Constsnts.API_BASE}/rules`;
-    createRule(uri);
+  const handleCreateButtonClick = () => {
+    if (currentTabKey === "rules") {
+      const uri = `${Constsnts.API_BASE}/rules`;
+      createRule(uri, editorText);
+    } else if (currentTabKey === "dsds") {
+      const uri = `${Constsnts.API_BASE}/dsds`;
+    }
   };
 
   const data = [
@@ -82,7 +94,7 @@ function App() {
           <Space size={"small"}>
             <Button type="link">View transpiled code</Button>
             <Button type="link">Assist me</Button>
-            <Button type="link" onClick={handleRuleCreateButtonClick}>
+            <Button type="link" onClick={handleCreateButtonClick}>
               Create
             </Button>
             <Button type="link">Save</Button>
@@ -94,10 +106,15 @@ function App() {
       </Header>
       <Layout>
         <Sider width={500} className="site-layout-background" theme="light">
-          <Tabs defaultActiveKey="0" type="card" size="small">
+          <Tabs
+            defaultActiveKey="0"
+            type="card"
+            size="small"
+            onChange={handleOnTabChange}
+          >
             <TabPane
               tab="Setup"
-              key="0"
+              key="setup"
               style={{ paddingTop: 10, paddingLeft: 40, paddingRight: 40 }}
             >
               <Space direction="vertical">
@@ -108,20 +125,20 @@ function App() {
                 />
 
                 {!isConnected ? (
-                  <Button type="primary" onClick={handleConnect}>
+                  <Button type="primary" onClick={handleOnConnect}>
                     Connect
                   </Button>
                 ) : (
-                  <Button type="primary" danger onClick={handleDisconenct}>
+                  <Button type="primary" danger onClick={handleOnDisconenct}>
                     Disconnect
                   </Button>
                 )}
               </Space>
             </TabPane>
-            <TabPane tab="Rules" key="1">
+            <TabPane tab="Rules" key="rules">
               <RuleList />
             </TabPane>
-            <TabPane tab="DSDs" key="3">
+            <TabPane tab="DSDs" key="dsds">
               Content of card tab 3
             </TabPane>
           </Tabs>
@@ -133,7 +150,27 @@ function App() {
               margin: 0,
             }}
           >
-            <Editor style={{ height: "70vh", width: "100%" }} />
+            {/* <Editor
+              onTextChange={handleEditorTextChange}
+              style={{ height: "70vh", width: "100%" }}
+            /> */}
+            <MyAceEditor
+              onTextChange={handleOnEditorTextChange}
+              onCursorPosChange={handleOnEditorCursorChange}
+              style={{ height: "65vh", width: "100%" }}
+            />
+            <div
+              style={{
+                width: "100%",
+                backgroundColor: "#ededed",
+                paddingRight: 50,
+                textAlign: "right",
+              }}
+            >
+              <Text style={{ color: "black", fontSize: 14 }}>
+                Ln {editorCurPos.ln}, Col {editorCurPos.col}
+              </Text>
+            </div>
             <Footer style={{ padding: 0, margin: 0 }}>
               <TextArea
                 autoSize={{ minRows: 5 }}

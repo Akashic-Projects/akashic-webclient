@@ -1,10 +1,8 @@
 import React, { useState } from "react";
-import { Table, Typography, Input, Space, Button, Switch } from "antd";
+import { Table, Input, Space, Button, Switch } from "antd";
 import Highlighter from "react-highlight-words";
 import { SearchOutlined } from "@ant-design/icons";
 import { CloseOutlined, CheckOutlined } from "@ant-design/icons";
-
-const { Text } = Typography;
 
 const data = [
   {

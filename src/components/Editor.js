@@ -1,60 +1,56 @@
-import React, { useState } from "react";
-import { Modal, Layout } from "antd";
+import React /*, { useEffect }*/ from "react";
 
 import AceEditor from "react-ace";
+import "ace-builds/webpack-resolver";
 import "ace-builds/src-noconflict/mode-json";
-//import "ace-builds/src-noconflict/theme-xcode";
-
-const { Content } = Layout;
+import "ace-builds/src-noconflict/theme-chrome";
 
 const Editor = (props) => {
-  const [modalVisible, setModalVisible] = useState(false);
-
   let editor = null;
   let markerIDs = [];
 
-  let resetMarkerList = () => {
+  /*const noRerender = useEffect(() => {
+    console.log("editor rerendered");
+  }, []);*/
+
+  const resetMarkerList = (editor) => {
     markerIDs.forEach((el) => {
       editor.session.removeMarker(el);
     });
     markerIDs = [];
   };
 
-  const showModal = () => {
-    setModalVisible(true);
+  const editorClickHandler = function (e) {
+    let editor = e.editor;
+    let pos = editor.getCursorPosition();
+    let token = editor.session.getTokenAt(pos.row, pos.column);
+
+    if (token) {
+      console.log("Clicked on: " + token.value);
+    }
+
+    // if (/\bkeyword\b/.test(token.type))
+    //   console.log(token.value, "is a keyword");
+
+    // // add highlight for the clicked token
+    // let range = new Range(
+    //   pos.row,
+    //   token.start,
+    //   pos.row,
+    //   token.start + token.value.length
+    // );
   };
 
-  let handleOnEditorLoad = (newEditor) => {
+  const handleOnEditorLoad = (newEditor) => {
     editor = newEditor;
-
-    // Handle clicks on highlighted words
-    let clickHandler = function (e) {
-      let editor = e.editor;
-      console.log(e);
-      let pos = editor.getCursorPosition();
-      let token = editor.session.getTokenAt(pos.row, pos.column);
-
-      if (token) {
-        console.log("Clicked on: " + token.value);
-      }
-
-      // if (/\bkeyword\b/.test(token.type))
-      //   console.log(token.value, "is a keyword");
-
-      // // add highlight for the clicked token
-      // let range = new Range(
-      //   pos.row,
-      //   token.start,
-      //   pos.row,
-      //   token.start + token.value.length
-      // );
-    };
-
-    // Set onClick handler function
-    editor.on("click", clickHandler);
+    editor.on("click", editorClickHandler);
   };
 
-  let handleOnChange = (value, e) => {
+  const handleOnChange = (value, e) => {
+    console.log("Change event objekat: ");
+    console.log(e);
+
+    // Start new search
     let searchRegex = /\?{2,}/g;
     editor.findAll(searchRegex, {
       backwards: false,
@@ -65,17 +61,17 @@ const Editor = (props) => {
       preventScroll: false,
     });
 
-    console.log(e);
     let ranges = editor.getSelection().getAllRanges();
 
     editor.getSelection().clearSelection();
     editor.selection.moveCursorToPosition(e.start);
 
-    // Reset marker list
-    resetMarkerList();
-
     let allMarekrs = editor.session.getMarkers(false);
+    console.log("Markeri: ");
     console.log(allMarekrs);
+
+    // Reset marker list
+    resetMarkerList(editor);
 
     // Add merkers to the editor
     ranges.forEach((el) => {
@@ -87,6 +83,7 @@ const Editor = (props) => {
         // Add marker ID to marker list
         markerIDs = [...markerIDs, markerID];
 
+        console.log("Rejndzevi: ");
         console.log(ranges);
       }
     });
@@ -95,30 +92,13 @@ const Editor = (props) => {
   return (
     <AceEditor
       mode="json"
-      //theme="xcode"
+      theme="chrome"
       name="UNIQUE_ID_OF_DIV"
       editorProps={{ $blockScrolling: true }}
       onLoad={handleOnEditorLoad}
       onChange={handleOnChange}
       style={props.style}
     />
-    /* <Modal
-        title="Basic Modal"
-        visible={modalVisible}
-        onOk={() => {
-          setModalVisible(false);
-        }}
-        onCancel={() => {
-          setModalVisible(false);
-        }}
-      >
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-      </Modal> */
-    /* <Button type="primary" onClick={showModal}>
-        Open Modal
-      </Button> */
   );
 };
 
