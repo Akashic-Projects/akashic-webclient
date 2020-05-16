@@ -3,6 +3,7 @@ import { Layout, Typography, Button, Space, Input, Tabs } from "antd";
 
 import MyAceEditor from "./components/MyAceEditorFunc";
 import RuleList from "./components/RuleList";
+import DSDList from "./components/DSDList";
 
 import Constsnts from "./constants/networking";
 
@@ -39,7 +40,7 @@ function App() {
     setEditorCurPos(curPos);
   };
 
-  const createRule = (uri, content) => {
+  const create = (uri, content) => {
     return fetch(uri, {
       method: "POST",
       headers: {
@@ -61,9 +62,10 @@ function App() {
   const handleCreateButtonClick = () => {
     if (currentTabKey === "rules") {
       const uri = `${Constsnts.API_BASE}/rules`;
-      createRule(uri, editorText);
+      create(uri, editorText);
     } else if (currentTabKey === "dsds") {
       const uri = `${Constsnts.API_BASE}/dsds`;
+      create(uri, editorText);
     }
   };
 
@@ -139,7 +141,7 @@ function App() {
               <RuleList />
             </TabPane>
             <TabPane tab="DSDs" key="dsds">
-              Content of card tab 3
+              <DSDList />
             </TabPane>
           </Tabs>
         </Sider>

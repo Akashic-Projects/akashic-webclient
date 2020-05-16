@@ -18,7 +18,7 @@ import Constsnts from "../constants/networking";
 
 const { Text } = Typography;
 
-const RuleList = () => {
+const DSDList = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
@@ -47,7 +47,7 @@ const RuleList = () => {
       .then((response) => response.json())
       .then((responseJson) =>
         responseJson.map((e) => {
-          return { ...e, key: e["rule-name"] };
+          return { ...e, key: e["model-name"] };
         })
       )
       .catch((error) => {
@@ -56,8 +56,8 @@ const RuleList = () => {
       });
   };
 
-  const loadRules = () => {
-    const uri = `${Constsnts.API_BASE}/rules`;
+  const loadDSDs = () => {
+    const uri = `${Constsnts.API_BASE}/dsds`;
 
     setLoading(true);
     handleLoadRules(uri).then((res) => {
@@ -68,7 +68,7 @@ const RuleList = () => {
   };
 
   useEffect(() => {
-    loadRules();
+    loadDSDs();
   }, []);
 
   const getColumnSearchProps = (dataIndex) => ({
@@ -124,7 +124,7 @@ const RuleList = () => {
           />
           <br />
           <Text style={{ color: "black", fontSize: 12 }}>
-            Salience: {row.rule.salience}
+            Unique DSD model name: {row["dsd-name"]}
           </Text>
         </div>
       ) : (
@@ -132,7 +132,7 @@ const RuleList = () => {
           <Text>{text}</Text>
           <br />
           <Text style={{ color: "black", fontSize: 12 }}>
-            Salience: {row.rule.salience}
+            Unique DSD model name: {row["model-name"]}
           </Text>
         </div>
       ),
@@ -140,10 +140,10 @@ const RuleList = () => {
 
   const columns = [
     {
-      title: "Rule Name",
-      dataIndex: "rule-name",
+      title: "DSD name",
+      dataIndex: "dsd-name",
       width: 600,
-      ...getColumnSearchProps("rule-name"),
+      ...getColumnSearchProps("dsd-name"),
     },
     {
       title: "Activity",
@@ -187,4 +187,4 @@ const RuleList = () => {
   );
 };
 
-export default RuleList;
+export default DSDList;
