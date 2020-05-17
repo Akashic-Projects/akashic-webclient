@@ -1,4 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, {
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
 
@@ -20,16 +25,22 @@ const getAceInstance = () => {
 };
 const ace = getAceInstance();
 
-const MyAceEditor = (props) => {
+const MyAceEditor = forwardRef((props, ref) => {
   let editorEl = useRef(null);
 
-  let node = null;
-  let editor = null;
-  let markerIDs = [];
+  let node = useRef(null);
+  let editor = useRef(null);
+  let markerIDs = useRef([]);
+
+  useImperativeHandle(ref, () => ({
+    setEditorText: (text) => {
+      editor.current.setValue(text, 1);
+    },
+  }));
 
   const handleOnClick = (e) => {
-    let pos = editor.getCursorPosition();
-    let token = editor.session.getTokenAt(pos.row, pos.column);
+    let pos = editor.current.getCursorPosition();
+    let token = editor.current.session.getTokenAt(pos.row, pos.column);
 
     if (token) {
       console.log("Clicked on: " + token.value);
@@ -48,22 +59,24 @@ const MyAceEditor = (props) => {
   };
 
   const resetMarkerList = () => {
-    markerIDs.forEach((el) => {
-      editor.session.removeMarker(el);
+    markerIDs.current.forEach((el) => {
+      editor.current.session.removeMarker(el);
     });
-    markerIDs = [];
+    markerIDs.current = [];
   };
 
   const handleOnChange = (e) => {
-    props.onTextChange(editor.getValue());
+    props.onTextChange(editor.current.getValue());
 
-    if (editor.getValue()[editor.getValue().length - 1] !== "?") {
+    if (
+      editor.current.getValue()[editor.current.getValue().length - 1] !== "?"
+    ) {
       return;
     }
 
     // Start new search
     let searchRegex = /\?{2,}/g;
-    editor.findAll(searchRegex, {
+    editor.current.findAll(searchRegex, {
       backwards: false,
       wrap: false,
       caseSensitive: true,
@@ -72,12 +85,12 @@ const MyAceEditor = (props) => {
       preventScroll: false,
     });
 
-    let ranges = editor.getSelection().getAllRanges();
+    let ranges = editor.current.getSelection().getAllRanges();
 
-    editor.getSelection().clearSelection();
-    editor.selection.moveCursorToPosition(e.start);
+    editor.current.getSelection().clearSelection();
+    editor.current.selection.moveCursorToPosition(e.start);
 
-    let allMarekrs = editor.session.getMarkers(false);
+    let allMarekrs = editor.current.session.getMarkers(false);
     console.log("Markeri: ");
     console.log(allMarekrs);
 
@@ -88,11 +101,11 @@ const MyAceEditor = (props) => {
     ranges.forEach((el) => {
       if (Math.abs(el.start.column - el.end.column) >= 2) {
         // Add marker to editor
-        let markerID = editor.session.addMarker(el, "ace_step", "text");
-        // let markerID = editor.session.addMarker(el, "ace_bracket", "text");
+        let markerID = editor.current.session.addMarker(el, "ace_step", "text");
+        // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
 
         // Add marker ID to marker list
-        markerIDs = [...markerIDs, markerID];
+        markerIDs.current = [...markerIDs.current, markerID];
 
         console.log("Rejndzevi: ");
         console.log(ranges);
@@ -101,16 +114,16 @@ const MyAceEditor = (props) => {
   };
 
   useEffect(() => {
-    node = ReactDOM.findDOMNode(editorEl.current);
-    editor = ace.edit(node);
-    editor.setTheme("ace/theme/clouds");
-    editor.getSession().setMode("ace/mode/json");
-    editor.setShowPrintMargin(false);
-    editor.setOption("autoScrollEditorIntoView", true);
-    editor.on("click", handleOnClick);
-    editor.on("change", handleOnChange);
-    editor.selection.on("changeCursor", (e) => {
-      const pos = editor.getCursorPosition();
+    node.current = ReactDOM.findDOMNode(editorEl.current);
+    editor.current = ace.edit(node.current);
+    editor.current.setTheme("ace/theme/clouds");
+    editor.current.getSession().setMode("ace/mode/json");
+    editor.current.setShowPrintMargin(false);
+    editor.current.setOption("autoScrollEditorIntoView", true);
+    editor.current.on("click", handleOnClick);
+    editor.current.on("change", handleOnChange);
+    editor.current.selection.on("changeCursor", (e) => {
+      const pos = editor.current.getCursorPosition();
       props.onCursorPosChange({ ln: pos.row + 1, col: pos.column + 1 });
     });
   }, []);
@@ -125,7 +138,7 @@ const MyAceEditor = (props) => {
       {props.code}
     </div>
   );
-};
+});
 
 MyAceEditor.propTypes = {
   mode: PropTypes.string,

@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 
 import {
   Table,
@@ -18,13 +23,19 @@ import Constsnts from "../constants/networking";
 
 const { Text } = Typography;
 
-const RuleList = () => {
+const RuleList = forwardRef((props, ref) => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
 
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    reLoad: () => {
+      loadRules();
+    },
+  }));
 
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
@@ -35,6 +46,24 @@ const RuleList = () => {
   const handleReset = (clearFilters) => {
     clearFilters();
     setSearchText("");
+  };
+
+  const handleSwitchOnChange = (checked, model_name) => {
+    let uri = `${Constsnts.API_BASE}/rules/disable/` + model_name;
+    if (checked) {
+      uri = `${Constsnts.API_BASE}/rules/enable/` + model_name;
+    }
+    fetch(uri, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+      },
+    })
+      .then(() => loadRules())
+      .catch((error) => {
+        console.error("Error: " + error);
+        message.error("Error while enabling/disabling rule.");
+      });
   };
 
   const handleLoadRules = (uri) => {
@@ -154,6 +183,9 @@ const RuleList = () => {
           checkedChildren={<CheckOutlined />}
           unCheckedChildren={<CloseOutlined />}
           checked={value}
+          onChange={(checked, e) =>
+            handleSwitchOnChange(checked, row["rule-name"])
+          }
         />
       ),
     },
@@ -162,7 +194,6 @@ const RuleList = () => {
   const rowSelection = {
     selectedRowKeys,
     columnWidth: 27,
-    onChange: () => {},
     type: "radio",
   };
 
@@ -179,12 +210,13 @@ const RuleList = () => {
         onRow={(record) => ({
           onClick: () => {
             setSelectedRowKeys([record.key]);
+            props.onSelectionChange(record);
           },
         })}
         rowSelection={rowSelection}
       />
     </Spin>
   );
-};
+});
 
 export default RuleList;

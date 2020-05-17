@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Layout, Typography, Button, Space, Input, Tabs } from "antd";
+import React, { useState, useRef } from "react";
+import { Layout, Typography, Button, Space, Input, Tabs, Row, Col } from "antd";
 
 import MyAceEditor from "./components/MyAceEditorFunc";
 import RuleList from "./components/RuleList";
@@ -19,6 +19,13 @@ function App() {
 
   const [editorText, setEditorText] = useState("");
   const [editorCurPos, setEditorCurPos] = useState({ ln: 1, col: 1 });
+
+  const [selectedDSD, setSelectedDSD] = useState(null);
+  const [selectedRule, setSelectedRule] = useState(null);
+
+  const myEditorRef = useRef();
+  const dsdsList = useRef();
+  const rulesList = useRef();
 
   const handleOnConnect = () => {
     setIsConnected(true);
@@ -40,6 +47,16 @@ function App() {
     setEditorCurPos(curPos);
   };
 
+  const handleDSDSelectionChange = (record) => {
+    setSelectedDSD(record);
+    myEditorRef.current.setEditorText(JSON.stringify(record.dsd, null, "\t"));
+  };
+
+  const handleRuleSelectionChange = (record) => {
+    setSelectedRule(record);
+    myEditorRef.current.setEditorText(JSON.stringify(record.rule, null, "\t"));
+  };
+
   const create = (uri, content) => {
     return fetch(uri, {
       method: "POST",
@@ -51,6 +68,7 @@ function App() {
     })
       .then((response) => response.json())
       .then((responseJson) => {
+        console.log("Create resp:");
         console.log(responseJson);
         return responseJson;
       })
@@ -59,23 +77,67 @@ function App() {
       });
   };
 
+  const update = (uri, content) => {
+    return fetch(uri, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: content,
+    })
+      .then((response) => response.json())
+      .then((responseJson) => {
+        console.log("Update resp:");
+        console.log(responseJson);
+        return responseJson;
+      })
+      .catch((error) => {
+        console.error("Error: " + error);
+      });
+  };
+
+  const deletee = (uri, content) => {
+    return fetch(uri, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    }).catch((error) => {
+      console.error("Error: " + error);
+    });
+  };
+
   const handleCreateButtonClick = () => {
-    if (currentTabKey === "rules") {
-      const uri = `${Constsnts.API_BASE}/rules`;
-      create(uri, editorText);
-    } else if (currentTabKey === "dsds") {
+    if (currentTabKey === "dsds") {
       const uri = `${Constsnts.API_BASE}/dsds`;
-      create(uri, editorText);
+      create(uri, editorText).then(() => dsdsList.current.reLoad());
+    } else if (currentTabKey === "rules") {
+      const uri = `${Constsnts.API_BASE}/rules`;
+      create(uri, editorText).then(() => rulesList.current.reLoad());
     }
   };
 
-  const data = [
-    "Racing car sprays burning fuel into crowd.",
-    "Japanese princess to wed commoner.",
-    "Australian walks 100km after outback crash.",
-    "Man charged over missing wedding girl.",
-    "Los Angeles battles huge wildfires.",
-  ];
+  const handleUpdateButtonClick = () => {
+    if (currentTabKey === "dsds" && selectedDSD != null) {
+      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
+      update(uri, editorText).then(() => dsdsList.current.reLoad());
+    } else if (currentTabKey === "rules" && selectedRule != null) {
+      const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
+      update(uri, editorText).then(() => rulesList.current.reLoad());
+    }
+  };
+
+  const handleDeleteButtonClick = () => {
+    if (currentTabKey === "dsds" && selectedDSD != null) {
+      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
+      deletee(uri, editorText).then(() => dsdsList.current.reLoad());
+    } else if (currentTabKey === "rules" && selectedRule != null) {
+      const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
+      deletee(uri, editorText).then(() => rulesList.current.reLoad());
+    }
+  };
 
   return (
     <Layout style={{ height: "100vh" }}>
@@ -88,26 +150,46 @@ function App() {
           height: "11vh",
         }}
       >
-        <Space size={259}>
-          <div>
-            <Text style={{ color: "#fa541c", fontSize: 33 }}>akashic</Text>
-            <Text style={{ color: "#fa541c", fontSize: 14 }}> webclient</Text>
-          </div>
-          <Space size={"small"}>
-            <Button type="link">View transpiled code</Button>
-            <Button type="link">Assist me</Button>
-            <Button type="link" onClick={handleCreateButtonClick}>
-              Create
-            </Button>
-            <Button type="link">Save</Button>
-            <Button type="link" danger>
-              Delete
-            </Button>
-          </Space>
-        </Space>
+        <Layout style={{ width: "100%", backgroundColor: "white" }}>
+          <Row>
+            <Col span={6}>
+              <div>
+                <Text style={{ color: "#fa541c", fontSize: 33 }}>akashic</Text>
+                <Text style={{ color: "#fa541c", fontSize: 14 }}>
+                  {" "}
+                  webclient
+                </Text>
+              </div>
+            </Col>
+            <Col span={15}>
+              <Space size={"small"}>
+                <Button type="link">View transpiled code</Button>
+                <Button type="link">Assist me</Button>
+                <Button type="link" onClick={handleCreateButtonClick}>
+                  Create
+                </Button>
+                <Button type="link" onClick={handleUpdateButtonClick}>
+                  Update
+                </Button>
+                <Button type="link" onClick={handleDeleteButtonClick} danger>
+                  Delete
+                </Button>
+              </Space>
+            </Col>
+            <Col span={3}>
+              <Button type="link">View Akashic Docs</Button>
+            </Col>
+          </Row>
+        </Layout>
       </Header>
       <Layout>
-        <Sider width={500} className="site-layout-background" theme="light">
+        <Sider
+          width={500}
+          className="site-layout-background"
+          theme="light"
+          collapsible
+          collapsedWidth={30}
+        >
           <Tabs
             defaultActiveKey="0"
             type="card"
@@ -137,11 +219,17 @@ function App() {
                 )}
               </Space>
             </TabPane>
-            <TabPane tab="Rules" key="rules">
-              <RuleList />
-            </TabPane>
             <TabPane tab="DSDs" key="dsds">
-              <DSDList />
+              <DSDList
+                ref={dsdsList}
+                onSelectionChange={handleDSDSelectionChange}
+              />
+            </TabPane>
+            <TabPane tab="Rules" key="rules">
+              <RuleList
+                ref={rulesList}
+                onSelectionChange={handleRuleSelectionChange}
+              />
             </TabPane>
           </Tabs>
         </Sider>
@@ -152,14 +240,12 @@ function App() {
               margin: 0,
             }}
           >
-            {/* <Editor
-              onTextChange={handleEditorTextChange}
-              style={{ height: "70vh", width: "100%" }}
-            /> */}
             <MyAceEditor
+              ref={myEditorRef}
               onTextChange={handleOnEditorTextChange}
               onCursorPosChange={handleOnEditorCursorChange}
               style={{ height: "65vh", width: "100%" }}
+              text={editorText}
             />
             <div
               style={{

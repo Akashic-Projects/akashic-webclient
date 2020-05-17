@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 
 import {
   Table,
@@ -18,13 +23,19 @@ import Constsnts from "../constants/networking";
 
 const { Text } = Typography;
 
-const DSDList = () => {
+const DSDList = forwardRef((props, ref) => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
 
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    reLoad: () => {
+      loadDSDs();
+    },
+  }));
 
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
@@ -35,6 +46,24 @@ const DSDList = () => {
   const handleReset = (clearFilters) => {
     clearFilters();
     setSearchText("");
+  };
+
+  const handleSwitchOnChange = (checked, model_name) => {
+    let uri = `${Constsnts.API_BASE}/dsds/disable/` + model_name;
+    if (checked) {
+      uri = `${Constsnts.API_BASE}/dsds/enable/` + model_name;
+    }
+    fetch(uri, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+      },
+    })
+      .then(() => loadDSDs())
+      .catch((error) => {
+        console.error("Error: " + error);
+        message.error("Error while enabling/disabling DSD.");
+      });
   };
 
   const handleLoadRules = (uri) => {
@@ -52,7 +81,7 @@ const DSDList = () => {
       )
       .catch((error) => {
         console.error("Error: " + error);
-        message.error("Error while fetching rules.");
+        message.error("Error while fetching DSDs.");
       });
   };
 
@@ -124,7 +153,7 @@ const DSDList = () => {
           />
           <br />
           <Text style={{ color: "black", fontSize: 12 }}>
-            Unique DSD model name: {row["dsd-name"]}
+            Unique DSD model name: {row["model-name"]}
           </Text>
         </div>
       ) : (
@@ -154,6 +183,9 @@ const DSDList = () => {
           checkedChildren={<CheckOutlined />}
           unCheckedChildren={<CloseOutlined />}
           checked={value}
+          onChange={(checked, e) =>
+            handleSwitchOnChange(checked, row["model-name"])
+          }
         />
       ),
     },
@@ -179,12 +211,13 @@ const DSDList = () => {
         onRow={(record) => ({
           onClick: () => {
             setSelectedRowKeys([record.key]);
+            props.onSelectionChange(record);
           },
         })}
         rowSelection={rowSelection}
       />
     </Spin>
   );
-};
+});
 
 export default DSDList;
