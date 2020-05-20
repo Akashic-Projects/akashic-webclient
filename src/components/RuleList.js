@@ -4,7 +4,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-
+import axios from "axios";
 import {
   Table,
   Input,
@@ -48,52 +48,63 @@ const RuleList = forwardRef((props, ref) => {
     setSearchText("");
   };
 
-  const handleSwitchOnChange = (checked, model_name) => {
-    let uri = `${Constsnts.API_BASE}/rules/disable/` + model_name;
-    if (checked) {
-      uri = `${Constsnts.API_BASE}/rules/enable/` + model_name;
+  const errorRespHandler = (err, customMessage) => {
+    if (typeof err.response !== "undefined" && err.response.status === 400) {
+      console.log(err.response);
+      props.onAddLogEntry(err.response.data.meta);
+    } else {
+      message.error(customMessage + "Internal message: " + err.message);
     }
-    fetch(uri, {
+  };
+
+  const handleSwitchOnChange = (checked, model_name) => {
+    let url = `${Constsnts.API_BASE}/rules/disable/` + model_name;
+    if (checked) {
+      url = `${Constsnts.API_BASE}/rules/enable/` + model_name;
+    }
+    axios({
+      url,
       method: "PUT",
       headers: {
         Accept: "application/json",
       },
     })
-      .then(() => loadRules())
-      .catch((error) => {
-        console.error("Error: " + error);
-        message.error("Error while enabling/disabling rule.");
-      });
+      .then((response) => {
+        props.onAddLogEntry(response.data.meta);
+        loadRules();
+      })
+      .catch((err) =>
+        errorRespHandler(
+          err,
+          "Internal error while switching on/off selected rule."
+        )
+      );
   };
 
-  const handleLoadRules = (uri) => {
-    return fetch(uri, {
+  const loadRules = () => {
+    const url = `${Constsnts.API_BASE}/rules`;
+    setLoading(true);
+    return axios({
+      url,
       method: "GET",
       headers: {
         Accept: "application/json",
       },
     })
-      .then((response) => response.json())
-      .then((responseJson) =>
-        responseJson.map((e) => {
+      .then((response) => {
+        //props.onAddLogEntry(response.data.meta);
+        return response.data.data;
+      })
+      .then((data) => {
+        const m_data = data.map((e) => {
           return { ...e, key: e["rule-name"] };
-        })
-      )
-      .catch((error) => {
-        console.error("Error: " + error);
-        message.error("Error while fetching rules.");
+        });
+        setRules(m_data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        errorRespHandler(err, "Internal error while loading rules.");
       });
-  };
-
-  const loadRules = () => {
-    const uri = `${Constsnts.API_BASE}/rules`;
-
-    setLoading(true);
-    handleLoadRules(uri).then((res) => {
-      setLoading(false);
-      setRules(res);
-      console.log(res);
-    });
   };
 
   useEffect(() => {

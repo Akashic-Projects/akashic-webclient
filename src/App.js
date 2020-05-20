@@ -1,5 +1,18 @@
 import React, { useState, useRef } from "react";
-import { Layout, Typography, Button, Space, Input, Tabs, Row, Col } from "antd";
+import axios from "axios";
+import {
+  Layout,
+  Typography,
+  Button,
+  Space,
+  Input,
+  Tabs,
+  Row,
+  Col,
+  Tooltip,
+  message,
+} from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 
 import MyAceEditor from "./components/MyAceEditorFunc";
 import RuleList from "./components/RuleList";
@@ -10,11 +23,9 @@ import Constsnts from "./constants/networking";
 const { Header, Content, Footer, Sider } = Layout;
 const { Text } = Typography;
 const { TabPane } = Tabs;
-const { TextArea } = Input;
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
-  const [logText, setLogText] = useState("ERROR: This is a test.");
   const [currentTabKey, setCurrentTabKey] = useState("0");
 
   const [editorText, setEditorText] = useState("");
@@ -23,9 +34,12 @@ function App() {
   const [selectedDSD, setSelectedDSD] = useState(null);
   const [selectedRule, setSelectedRule] = useState(null);
 
+  const [logEntries, setLogEntries] = useState([]);
+
   const myEditorRef = useRef();
   const dsdsList = useRef();
   const rulesList = useRef();
+  const logList = useRef();
 
   const handleOnConnect = () => {
     setIsConnected(true);
@@ -57,85 +71,118 @@ function App() {
     myEditorRef.current.setEditorText(JSON.stringify(record.rule, null, "\t"));
   };
 
-  const create = (uri, content) => {
-    return fetch(uri, {
+  const scrollLogToBottom = () => {
+    logList.current.scrollTop = logList.current.offsetHeight;
+  };
+
+  const addLogEntry = (entry) => {
+    setLogEntries(logEntries.concat([entry]));
+    scrollLogToBottom();
+  };
+
+  const errorRespHandler = (err, customMessage) => {
+    if (typeof err.response !== "undefined" && err.response.status === 400) {
+      addLogEntry(err.response.data.meta);
+    } else {
+      message.error(customMessage + "Internal message: " + err.message);
+    }
+  };
+
+  const create = (url, content) => {
+    return axios({
+      url,
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: content,
+      data: content,
     })
-      .then((response) => response.json())
-      .then((responseJson) => {
-        console.log("Create resp:");
-        console.log(responseJson);
-        return responseJson;
+      .then((response) => {
+        addLogEntry(response.data.meta);
+        dsdsList.current.reLoad();
+        rulesList.current.reLoad();
       })
-      .catch((error) => {
-        console.error("Error: " + error);
-      });
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while creating new DSD.")
+      );
   };
 
-  const update = (uri, content) => {
-    return fetch(uri, {
+  const update = (url, content) => {
+    return axios({
+      url,
       method: "PUT",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: content,
+      data: content,
     })
-      .then((response) => response.json())
-      .then((responseJson) => {
-        console.log("Update resp:");
-        console.log(responseJson);
-        return responseJson;
+      .then((response) => {
+        addLogEntry(response.data.meta);
+        dsdsList.current.reLoad();
+        rulesList.current.reLoad();
       })
-      .catch((error) => {
-        console.error("Error: " + error);
-      });
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while updating DSD.")
+      );
   };
 
-  const deletee = (uri, content) => {
-    return fetch(uri, {
+  const deletee = (url) => {
+    return axios({
+      url,
       method: "DELETE",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json",
       },
-    }).catch((error) => {
-      console.error("Error: " + error);
-    });
+    })
+      .then((response) => {
+        addLogEntry(response.data.meta);
+        dsdsList.current.reLoad();
+        rulesList.current.reLoad();
+      })
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while deleting DSD.")
+      );
+  };
+
+  const typeToColor = (type) => {
+    if (type === "SUCCESS") {
+      return "green";
+    } else if (type === "INFO") {
+      return "blue";
+    } else if (type === "ERROR") {
+      return "red";
+    }
   };
 
   const handleCreateButtonClick = () => {
     if (currentTabKey === "dsds") {
       const uri = `${Constsnts.API_BASE}/dsds`;
-      create(uri, editorText).then(() => dsdsList.current.reLoad());
+      create(uri, editorText);
     } else if (currentTabKey === "rules") {
       const uri = `${Constsnts.API_BASE}/rules`;
-      create(uri, editorText).then(() => rulesList.current.reLoad());
+      create(uri, editorText);
     }
   };
 
   const handleUpdateButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
       const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      update(uri, editorText).then(() => dsdsList.current.reLoad());
+      update(uri, editorText);
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      update(uri, editorText).then(() => rulesList.current.reLoad());
+      update(uri, editorText);
     }
   };
 
   const handleDeleteButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
       const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      deletee(uri, editorText).then(() => dsdsList.current.reLoad());
+      deletee(uri, editorText);
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      deletee(uri, editorText).then(() => rulesList.current.reLoad());
+      deletee(uri, editorText);
     }
   };
 
@@ -163,7 +210,7 @@ function App() {
             </Col>
             <Col span={15}>
               <Space size={"small"}>
-                <Button type="link">View transpiled code</Button>
+                <Button type="link">View transpiled code + details</Button>
                 <Button type="link">Assist me</Button>
                 <Button type="link" onClick={handleCreateButtonClick}>
                   Create
@@ -223,12 +270,14 @@ function App() {
               <DSDList
                 ref={dsdsList}
                 onSelectionChange={handleDSDSelectionChange}
+                onAddLogEntry={addLogEntry}
               />
             </TabPane>
             <TabPane tab="Rules" key="rules">
               <RuleList
                 ref={rulesList}
                 onSelectionChange={handleRuleSelectionChange}
+                onAddLogEntry={addLogEntry}
               />
             </TabPane>
           </Tabs>
@@ -247,7 +296,7 @@ function App() {
               style={{ height: "65vh", width: "100%" }}
               text={editorText}
             />
-            <div
+            <Layout
               style={{
                 width: "100%",
                 backgroundColor: "#ededed",
@@ -255,19 +304,90 @@ function App() {
                 textAlign: "right",
               }}
             >
-              <Text style={{ color: "black", fontSize: 14 }}>
-                Ln {editorCurPos.ln}, Col {editorCurPos.col}
-              </Text>
-            </div>
+              <Row>
+                <Col span={12}>
+                  <div
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#ededed",
+                      paddingRight: 50,
+                      textAlign: "left",
+                      paddingLeft: 4,
+                    }}
+                  >
+                    <Tooltip
+                      placement="top"
+                      title="Clear log"
+                      mouseEnterDelay={0.5}
+                    >
+                      <Button
+                        type="dashed"
+                        icon={<CloseOutlined />}
+                        size="small"
+                        danger
+                        onClick={(e) => {
+                          setLogEntries([]);
+                        }}
+                      ></Button>
+                    </Tooltip>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#ededed",
+                      paddingRight: 4,
+                      textAlign: "right",
+                    }}
+                  >
+                    <Text style={{ color: "black", fontSize: 14 }}>
+                      Ln {editorCurPos.ln}, Col {editorCurPos.col}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+            </Layout>
             <Footer style={{ padding: 0, margin: 0 }}>
-              <TextArea
-                autoSize={{ minRows: 5 }}
+              <div
+                ref={logList}
                 style={{
                   width: "100%",
-                  backgroundColor: "#ededed",
+                  height: "20vh",
+                  overflowX: "scroll",
                 }}
-                value={logText}
-              />
+              >
+                <code
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#ededed",
+                    //whiteSpace: "wrap",
+                  }}
+                >
+                  {logEntries.map((item) => (
+                    <div style={{ lineHeight: "1em" }} key={Math.random()}>
+                      <span
+                        style={{
+                          color: typeToColor(item.type),
+                          fontSize: 12,
+                        }}
+                      >
+                        {"[" +
+                          item.timestamp +
+                          "] " +
+                          item.type +
+                          " at (" +
+                          item.ln +
+                          ", " +
+                          item.col +
+                          ")" +
+                          " >> " +
+                          item.text}
+                      </span>
+                    </div>
+                  ))}
+                </code>
+              </div>
             </Footer>
           </Content>
         </Layout>
