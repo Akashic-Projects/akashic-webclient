@@ -94,7 +94,7 @@ function App() {
     }
   };
 
-  const create = (url, content) => {
+  const create = (url, content, toReLoad) => {
     return axios({
       url,
       method: "POST",
@@ -106,15 +106,14 @@ function App() {
     })
       .then((response) => {
         addLogEntry(response.data.meta);
-        dsdsList.current.reLoad();
-        rulesList.current.reLoad();
       })
+      .then(() => toReLoad.current.reLoad())
       .catch((err) =>
         errorRespHandler(err, "Internal error while creating new DSD.")
       );
   };
 
-  const update = (url, content) => {
+  const update = (url, content, toReLoad) => {
     return axios({
       url,
       method: "PUT",
@@ -126,15 +125,14 @@ function App() {
     })
       .then((response) => {
         addLogEntry(response.data.meta);
-        dsdsList.current.reLoad();
-        rulesList.current.reLoad();
       })
+      .then(() => toReLoad.current.reLoad())
       .catch((err) =>
         errorRespHandler(err, "Internal error while updating DSD.")
       );
   };
 
-  const deletee = (url) => {
+  const deletee = (url, toReLoad) => {
     return axios({
       url,
       method: "DELETE",
@@ -144,9 +142,8 @@ function App() {
     })
       .then((response) => {
         addLogEntry(response.data.meta);
-        dsdsList.current.reLoad();
-        rulesList.current.reLoad();
       })
+      .then(() => toReLoad.current.reLoad())
       .catch((err) =>
         errorRespHandler(err, "Internal error while deleting DSD.")
       );
@@ -165,30 +162,30 @@ function App() {
   const handleCreateButtonClick = () => {
     if (currentTabKey === "dsds") {
       const uri = `${Constsnts.API_BASE}/dsds`;
-      create(uri, editorText);
+      create(uri, editorText, dsdsList);
     } else if (currentTabKey === "rules") {
       const uri = `${Constsnts.API_BASE}/rules`;
-      create(uri, editorText);
+      create(uri, editorText, rulesList);
     }
   };
 
   const handleUpdateButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
       const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      update(uri, editorText);
+      update(uri, editorText, dsdsList);
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      update(uri, editorText);
+      update(uri, editorText, rulesList);
     }
   };
 
   const handleDeleteButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
       const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      deletee(uri, editorText);
+      deletee(uri, editorText, dsdsList);
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      deletee(uri, editorText);
+      deletee(uri, editorText, rulesList);
     }
   };
 
