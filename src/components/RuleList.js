@@ -53,7 +53,7 @@ const RuleList = forwardRef((props, ref) => {
       console.log(err.response);
       props.onAddLogEntry(err.response.data.meta);
     } else {
-      message.error(customMessage + "Internal message: " + err.message);
+      message.error(customMessage + " Message: " + err.message);
     }
   };
 

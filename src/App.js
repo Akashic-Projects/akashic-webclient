@@ -24,7 +24,7 @@ import DSDList from "./components/DSDList";
 
 import Constsnts from "./constants/networking";
 
-const { Header, Content, Footer, Sider } = Layout;
+const { Header } = Layout;
 const { Text } = Typography;
 const { TabPane } = Tabs;
 
@@ -90,7 +90,7 @@ function App() {
     if (typeof err.response !== "undefined" && err.response.status === 400) {
       addLogEntry(err.response.data.meta);
     } else {
-      message.error(customMessage + "Internal message: " + err.message);
+      message.error(customMessage + " Message: " + err.message);
     }
   };
 
