@@ -14,21 +14,15 @@ import {
 } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 
-import ResizePanel from "react-resize-panel";
-import style from "./App.css";
-import classNames from "classnames/bind";
+import MyAceEditor from "./components/MyAceEditorFunc";
+import RuleList from "../components/RuleList";
+import DSDList from "../components/DSDList";
 
-import AceEditor from "./components/AceEditor";
-import RuleList from "./components/RuleList";
-import DSDList from "./components/DSDList";
-
-import Constsnts from "./constants/networking";
+import Constsnts from "../constants/networking";
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Text } = Typography;
 const { TabPane } = Tabs;
-
-const cx = classNames.bind(style);
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
@@ -192,119 +186,6 @@ function App() {
     }
   };
 
-  const infoLine = (
-    <div
-      style={{
-        width: "100%",
-        heigh: "30px",
-        backgroundColor: "#ededed",
-        paddingRight: 50,
-        textAlign: "right",
-      }}
-    >
-      <Row>
-        <Col span={11}>
-          <div
-            style={{
-              width: "100%",
-              backgroundColor: "#ededed",
-              paddingRight: 50,
-              textAlign: "left",
-              paddingLeft: 4,
-            }}
-          >
-            <Tooltip placement="top" title="Clear log" mouseEnterDelay={0.5}>
-              <Button
-                type="dashed"
-                icon={<CloseOutlined />}
-                size="small"
-                danger
-                onClick={(e) => {
-                  setLogEntries([]);
-                }}
-              ></Button>
-            </Tooltip>
-          </div>
-        </Col>
-        <Col span={2} style={{ textAlign: "center" }}>
-          <Text
-            style={{
-              marginLeft: 47,
-            }}
-          >
-            {" "}
-            Logs
-          </Text>
-        </Col>
-        <Col span={11}>
-          <div
-            style={{
-              width: "100%",
-              backgroundColor: "#ededed",
-              paddingRight: 4,
-              textAlign: "right",
-            }}
-          >
-            <Text style={{ color: "black", fontSize: 14 }}>
-              Ln {editorCurPos.ln}, Col {editorCurPos.col}
-            </Text>
-          </div>
-        </Col>
-      </Row>
-    </div>
-  );
-
-  const logViewer = (
-    <ResizePanel
-      direction="n"
-      style={{ height: "40%", width: "100%", border: "1px solid lightgray" }}
-    >
-      <div className={cx("footer", "panel")}>
-        <Layout
-          ref={logList}
-          style={{
-            width: "100%",
-            //height: "100%",
-            overflowX: "scroll",
-          }}
-        >
-          <code
-            style={{
-              width: "100%",
-              height: "100%",
-              backgroundColor: "white",
-              //backgroundColor: "#ededed",
-              //whiteSpace: "wrap",
-            }}
-          >
-            {logEntries.map((item) => (
-              <div style={{ lineHeight: "1em" }} key={Math.random()}>
-                <span
-                  style={{
-                    color: typeToColor(item.type),
-                    fontSize: 12,
-                  }}
-                >
-                  {"[" +
-                    item.timestamp +
-                    "] " +
-                    item.type +
-                    " at (" +
-                    item.ln +
-                    ", " +
-                    item.col +
-                    ")" +
-                    " >> " +
-                    item.text}
-                </span>
-              </div>
-            ))}
-          </code>
-        </Layout>
-      </div>
-    </ResizePanel>
-  );
-
   return (
     <Layout style={{ height: "100vh" }}>
       <Header
@@ -349,84 +230,167 @@ function App() {
         </Layout>
       </Header>
       <Layout>
-        <div className={cx("container")}>
-          <div className={cx("body")}>
-            <ResizePanel direction="e" style={{ flexGrow: "1" }}>
-              <div className={cx("sidebar", "panel")}>
-                <Tabs
-                  defaultActiveKey="0"
-                  type="card"
-                  size="small"
-                  onChange={handleOnTabChange}
-                  style={{
-                    height: "100%",
-                    width: "100%",
-                  }}
-                >
-                  <TabPane
-                    tab="Setup"
-                    key="setup"
+        <Sider
+          width={500}
+          className="site-layout-background"
+          theme="light"
+          collapsible
+          collapsedWidth={30}
+        >
+          <Tabs
+            defaultActiveKey="0"
+            type="card"
+            size="small"
+            onChange={handleOnTabChange}
+          >
+            <TabPane
+              tab="Setup"
+              key="setup"
+              style={{ paddingTop: 10, paddingLeft: 40, paddingRight: 40 }}
+            >
+              <Space direction="vertical">
+                <Input
+                  placeholder="server IP:PORT"
+                  allowClear
+                  onChange={() => {}}
+                />
+
+                {!isConnected ? (
+                  <Button type="primary" onClick={handleOnConnect}>
+                    Connect
+                  </Button>
+                ) : (
+                  <Button type="primary" danger onClick={handleOnDisconenct}>
+                    Disconnect
+                  </Button>
+                )}
+              </Space>
+            </TabPane>
+            <TabPane tab="DSDs" key="dsds">
+              <DSDList
+                ref={dsdsList}
+                onSelectionChange={handleDSDSelectionChange}
+                onAddLogEntry={addLogEntry}
+              />
+            </TabPane>
+            <TabPane tab="Rules" key="rules">
+              <RuleList
+                ref={rulesList}
+                onSelectionChange={handleRuleSelectionChange}
+                onAddLogEntry={addLogEntry}
+              />
+            </TabPane>
+          </Tabs>
+        </Sider>
+        <Layout style={{ padding: 0 }}>
+          <Content
+            className="site-layout-background"
+            style={{
+              margin: 0,
+            }}
+          >
+            <MyAceEditor
+              ref={myEditorRef}
+              onTextChange={handleOnEditorTextChange}
+              onCursorPosChange={handleOnEditorCursorChange}
+              style={{ height: "65vh", width: "100%" }}
+              text={editorText}
+            />
+            <Layout
+              style={{
+                width: "100%",
+                backgroundColor: "#ededed",
+                paddingRight: 50,
+                textAlign: "right",
+              }}
+            >
+              <Row>
+                <Col span={12}>
+                  <div
                     style={{
-                      paddingTop: 10,
-                      paddingLeft: 40,
-                      paddingRight: 40,
+                      width: "100%",
+                      backgroundColor: "#ededed",
+                      paddingRight: 50,
+                      textAlign: "left",
+                      paddingLeft: 4,
                     }}
                   >
-                    <Space direction="vertical">
-                      <Input
-                        placeholder="server IP:PORT"
-                        allowClear
-                        onChange={() => {}}
-                      />
-
-                      {!isConnected ? (
-                        <Button type="primary" onClick={handleOnConnect}>
-                          Connect
-                        </Button>
-                      ) : (
-                        <Button
-                          type="primary"
-                          danger
-                          onClick={handleOnDisconenct}
-                        >
-                          Disconnect
-                        </Button>
-                      )}
-                    </Space>
-                  </TabPane>
-                  <TabPane tab="DSDs" key="dsds">
-                    <DSDList
-                      ref={dsdsList}
-                      onSelectionChange={handleDSDSelectionChange}
-                      onAddLogEntry={addLogEntry}
-                    />
-                  </TabPane>
-                  <TabPane tab="Rules" key="rules">
-                    <RuleList
-                      ref={rulesList}
-                      onSelectionChange={handleRuleSelectionChange}
-                      onAddLogEntry={addLogEntry}
-                    />
-                  </TabPane>
-                </Tabs>
+                    <Tooltip
+                      placement="top"
+                      title="Clear log"
+                      mouseEnterDelay={0.5}
+                    >
+                      <Button
+                        type="dashed"
+                        icon={<CloseOutlined />}
+                        size="small"
+                        danger
+                        onClick={(e) => {
+                          setLogEntries([]);
+                        }}
+                      ></Button>
+                    </Tooltip>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#ededed",
+                      paddingRight: 4,
+                      textAlign: "right",
+                    }}
+                  >
+                    <Text style={{ color: "black", fontSize: 14 }}>
+                      Ln {editorCurPos.ln}, Col {editorCurPos.col}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+            </Layout>
+            <Footer style={{ padding: 0, margin: 0 }}>
+              <div
+                ref={logList}
+                style={{
+                  width: "100%",
+                  height: "20vh",
+                  overflowX: "scroll",
+                }}
+              >
+                <code
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#ededed",
+                    //whiteSpace: "wrap",
+                  }}
+                >
+                  {logEntries.map((item) => (
+                    <div style={{ lineHeight: "1em" }} key={Math.random()}>
+                      <span
+                        style={{
+                          color: typeToColor(item.type),
+                          fontSize: 12,
+                        }}
+                      >
+                        {"[" +
+                          item.timestamp +
+                          "] " +
+                          item.type +
+                          " at (" +
+                          item.ln +
+                          ", " +
+                          item.col +
+                          ")" +
+                          " >> " +
+                          item.text}
+                      </span>
+                    </div>
+                  ))}
+                </code>
               </div>
-            </ResizePanel>
-            <div
-              className={cx("content", "panel")}
-              style={{ float: "left", flexFlow: "column nowrap" }}
-            >
-              <AceEditor
-                ref={myEditorRef}
-                onTextChange={handleOnEditorTextChange}
-                onCursorPosChange={handleOnEditorCursorChange}
-                style={{ height: "100%", width: "100%" }}
-                text={editorText}
-              />
-              {infoLine}
-              {logViewer}
-            </div>
-          </div>
-        </div>
+            </Footer>
+          </Content>
+        </Layout>
       </Layout>
     </Layout>
   );

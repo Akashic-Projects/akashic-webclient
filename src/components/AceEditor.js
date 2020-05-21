@@ -25,7 +25,7 @@ const getAceInstance = () => {
 };
 const ace = getAceInstance();
 
-const MyAceEditor = forwardRef((props, ref) => {
+const AceEditor = forwardRef((props, ref) => {
   let editorEl = useRef(null);
 
   let node = useRef(null);
@@ -140,14 +140,14 @@ const MyAceEditor = forwardRef((props, ref) => {
   );
 });
 
-MyAceEditor.propTypes = {
+AceEditor.propTypes = {
   mode: PropTypes.string,
   content: PropTypes.string,
 };
 
-MyAceEditor.defaultProps = {
+AceEditor.defaultProps = {
   mode: "json",
   code: '{\n  "rule-name": "Example rule",\n  "salience": 140\n}',
 };
 
-export default MyAceEditor;
+export default AceEditor;

@@ -215,7 +215,7 @@ const RuleList = forwardRef((props, ref) => {
         dataSource={rules}
         pagination={{
           position: ["bottomCenter"],
-          defaultPageSize: 7,
+          defaultPageSize: 5,
         }}
         showHeader={true}
         onRow={(record) => ({

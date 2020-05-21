@@ -216,7 +216,7 @@ const DSDList = forwardRef((props, ref) => {
         dataSource={dsds}
         pagination={{
           position: ["bottomCenter"],
-          defaultPageSize: 4,
+          defaultPageSize: 5,
         }}
         showHeader={true}
         onRow={(record) => ({
