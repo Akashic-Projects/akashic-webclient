@@ -51,34 +51,10 @@ const DSDList = forwardRef((props, ref) => {
   const errorRespHandler = (err, customMessage) => {
     if (typeof err.response !== "undefined" && err.response.status === 400) {
       console.log(err.response);
-      props.onAddLogEntry(err.response.data.meta);
+      props.onAddLogEntry(err.response);
     } else {
       message.error(customMessage + " Message: " + err.message);
     }
-  };
-
-  const handleSwitchOnChange = (checked, model_name) => {
-    let url = `${Constsnts.API_BASE}/dsds/disable/` + model_name;
-    if (checked) {
-      url = `${Constsnts.API_BASE}/dsds/enable/` + model_name;
-    }
-    axios({
-      url,
-      method: "PUT",
-      headers: {
-        Accept: "application/json",
-      },
-    })
-      .then((response) => {
-        props.onAddLogEntry(response.data.meta);
-        loadDSDs();
-      })
-      .catch((err) =>
-        errorRespHandler(
-          err,
-          "Internal error while switching on/off selected DSD."
-        )
-      );
   };
 
   const loadDSDs = () => {
@@ -92,12 +68,12 @@ const DSDList = forwardRef((props, ref) => {
       },
     })
       .then((response) => {
-        //props.onAddLogEntry(response.data.meta);
+        //props.onAddLogEntry(response);
         return response.data.data;
       })
       .then((data) => {
         const m_data = data.map((e) => {
-          return { ...e, key: e["model-name"] };
+          return { ...e, key: e["dsd-name"] };
         });
         setDSDs(m_data);
         setLoading(false);
@@ -184,21 +160,6 @@ const DSDList = forwardRef((props, ref) => {
       dataIndex: "dsd-name",
       width: 600,
       ...getColumnSearchProps("dsd-name"),
-    },
-    {
-      title: "Activity",
-      dataIndex: "active",
-      width: 60,
-      render: (value, row) => (
-        <Switch
-          checkedChildren={<CheckOutlined />}
-          unCheckedChildren={<CloseOutlined />}
-          checked={value}
-          onChange={(checked, e) =>
-            handleSwitchOnChange(checked, row["model-name"])
-          }
-        />
-      ),
     },
   ];
 

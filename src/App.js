@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import {
   Layout,
@@ -11,8 +12,11 @@ import {
   Col,
   Tooltip,
   message,
+  Menu,
+  Dropdown,
 } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
+import { DownOutlined } from "@ant-design/icons";
 
 import ResizePanel from "react-resize-panel";
 import style from "./App.css";
@@ -31,7 +35,6 @@ const { TabPane } = Tabs;
 const cx = classNames.bind(style);
 
 function App() {
-  const [isConnected, setIsConnected] = useState(false);
   const [currentTabKey, setCurrentTabKey] = useState("0");
 
   const [editorText, setEditorText] = useState("");
@@ -46,14 +49,6 @@ function App() {
   const dsdsList = useRef();
   const rulesList = useRef();
   const logList = useRef();
-
-  const handleOnConnect = () => {
-    setIsConnected(true);
-  };
-
-  const handleOnDisconenct = () => {
-    setIsConnected(false);
-  };
 
   const handleOnTabChange = (key) => {
     setCurrentTabKey(key);
@@ -77,21 +72,143 @@ function App() {
     myEditorRef.current.setEditorText(JSON.stringify(record.rule, null, "\t"));
   };
 
-  const scrollLogToBottom = () => {
-    logList.current.scrollTop = logList.current.offsetHeight;
-  };
+  const addLogEntry = (response, include_data = false) => {
+    console.log(response);
+    if (
+      !response.hasOwnProperty("data") ||
+      !response.data.hasOwnProperty("meta")
+    ) {
+      message.error("----Unexpected error. Malformed JSON probably.");
+      return;
+    }
+    setLogEntries([response.data.meta, ...logEntries]);
 
-  const addLogEntry = (entry) => {
-    setLogEntries(logEntries.concat([entry]));
-    scrollLogToBottom();
+    if (include_data) {
+      setLogEntries([
+        JSON.stringify(response.data.data, null, "\t"),
+        ...logEntries,
+      ]);
+    }
   };
 
   const errorRespHandler = (err, customMessage) => {
+    console.log("ERR");
+    console.log(err);
+    console.log(customMessage);
+    if (
+      !err.hasOwnProperty("response") ||
+      !err.response.hasOwnProperty("data")
+    ) {
+      message.error("Unexpected error. Malformed JSON probably.");
+      message.error(err);
+      return 0;
+    }
     if (typeof err.response !== "undefined" && err.response.status === 400) {
-      addLogEntry(err.response.data.meta);
+      addLogEntry(err.response);
     } else {
       message.error(customMessage + " Message: " + err.message);
     }
+  };
+
+  const run = (url) => {
+    return axios({
+      url,
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        addLogEntry(response, true);
+      })
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while running engine")
+      );
+  };
+
+  const loadAll = (url) => {
+    return axios({
+      url,
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        addLogEntry(response);
+      })
+      .catch((err) =>
+        errorRespHandler(
+          err,
+          "Internal error while loading all rules and models in engine."
+        )
+      );
+  };
+
+  const getTemplates = (url) => {
+    return axios({
+      url,
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        addLogEntry(response, true);
+      })
+      .catch((err) =>
+        errorRespHandler(
+          err,
+          "Internal error while getting all tempalte names."
+        )
+      );
+  };
+
+  const getRules = (url) => {
+    return axios({
+      url,
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        addLogEntry(response, true);
+      })
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while getting all rule names.")
+      );
+  };
+
+  const responseToMarkers = (response) => {
+    if (
+      !response.hasOwnProperty("data") ||
+      !response.data.hasOwnProperty("meta")
+    ) {
+      message.error("----Unexpected error. Malformed JSON probably.");
+      return;
+    }
+    myEditorRef.current.addMarkers(response.data.data);
+  };
+
+  const assist = (url) => {
+    return axios({
+      url,
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        responseToMarkers(response);
+        addLogEntry(response, true);
+      })
+      .catch((err) => errorRespHandler(err, "Internal error while assisting."));
   };
 
   const create = (url, content, toReLoad) => {
@@ -105,7 +222,7 @@ function App() {
       data: content,
     })
       .then((response) => {
-        addLogEntry(response.data.meta);
+        addLogEntry(response);
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
@@ -124,7 +241,7 @@ function App() {
       data: content,
     })
       .then((response) => {
-        addLogEntry(response.data.meta);
+        addLogEntry(response);
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
@@ -141,7 +258,7 @@ function App() {
       },
     })
       .then((response) => {
-        addLogEntry(response.data.meta);
+        addLogEntry(response);
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
@@ -156,6 +273,39 @@ function App() {
       return "blue";
     } else if (type === "ERROR") {
       return "red";
+    }
+  };
+
+  const handleRunButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/run`;
+    run(uri);
+  };
+
+  const handleLoadButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/load-all`;
+    loadAll(uri);
+  };
+
+  const handleGetTempaltesButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/all-template-names`;
+    getTemplates(uri);
+  };
+
+  const handleGetRulesButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/all-rule-names`;
+    getRules(uri);
+  };
+
+  const handleAssistButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/assist`;
+    assist(uri);
+  };
+
+  const handleViewTranspiledCodeButtonClick = () => {
+    if (currentTabKey === "dsds" && selectedDSD != null) {
+      setLogEntries([selectedDSD["clips_code"], ...logEntries]);
+    } else if (currentTabKey === "rules" && selectedRule != null) {
+      setLogEntries([selectedRule["clips_code"], ...logEntries]);
     }
   };
 
@@ -182,10 +332,10 @@ function App() {
   const handleDeleteButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
       const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      deletee(uri, editorText, dsdsList);
+      deletee(uri, dsdsList);
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      deletee(uri, editorText, rulesList);
+      deletee(uri, rulesList);
     }
   };
 
@@ -263,10 +413,12 @@ function App() {
             width: "100%",
             //height: "100%",
             overflowX: "scroll",
+            backgroundColor: "white",
           }}
         >
           <code
             style={{
+              marginTop: 10,
               width: "100%",
               height: "100%",
               backgroundColor: "white",
@@ -275,31 +427,75 @@ function App() {
             }}
           >
             {logEntries.map((item) => (
-              <div style={{ lineHeight: "1em" }} key={Math.random()}>
-                <span
-                  style={{
-                    color: typeToColor(item.type),
-                    fontSize: 12,
-                  }}
-                >
-                  {"[" +
-                    item.timestamp +
-                    "] " +
-                    item.type +
-                    " at (" +
-                    item.ln +
-                    ", " +
-                    item.col +
-                    ")" +
-                    " >> " +
-                    item.text}
-                </span>
+              <div
+                style={{ lineHeight: "1em", display: "block" }}
+                key={uuidv4()}
+              >
+                {item.hasOwnProperty("timestamp") ? (
+                  <span
+                    style={{
+                      color: typeToColor(item.type),
+                      fontSize: 12,
+                    }}
+                  >
+                    {"[" +
+                      item.timestamp +
+                      "] " +
+                      item.type +
+                      " at (" +
+                      item.ln +
+                      ", " +
+                      item.col +
+                      ") >> " +
+                      item.text}
+                  </span>
+                ) : (
+                  <div>
+                    {item.split("\n").map((i, key) => {
+                      return (
+                        <span key={key} style={{ fontSize: 12 }}>
+                          {i.split("\t").map((i, key) => {
+                            return (
+                              <span key={key} style={{ fontSize: 12 }}>
+                                {i} &nbsp;&nbsp;&nbsp;&nbsp;
+                              </span>
+                            );
+                          })}{" "}
+                          <br />
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </code>
         </Layout>
       </div>
     </ResizePanel>
+  );
+
+  const dropdownMenu = (
+    <Menu>
+      <Menu.Item>
+        <a onClick={handleViewTranspiledCodeButtonClick}>
+          View transpiled code
+        </a>
+      </Menu.Item>
+      <Menu.Item>
+        <a onClick={handleGetRulesButtonClick}>Get all rules in engine</a>
+      </Menu.Item>
+      <Menu.Item>
+        <a onClick={handleGetTempaltesButtonClick}>
+          Get all tempaltes in engine
+        </a>
+      </Menu.Item>
+      <Menu.Item>
+        <a onClick={handleLoadButtonClick}>
+          Load all tempaltes and rules in engine
+        </a>
+      </Menu.Item>
+    </Menu>
   );
 
   return (
@@ -326,17 +522,29 @@ function App() {
             </Col>
             <Col span={15}>
               <Space size={"small"}>
-                <Button type="link">View transpiled code + details</Button>
-                <Button type="link">Assist me</Button>
+                <Button type="link" onClick={handleAssistButtonClick}>
+                  Assist me
+                </Button>
                 <Button type="link" onClick={handleCreateButtonClick}>
-                  Create
+                  Create/Define
                 </Button>
                 <Button type="link" onClick={handleUpdateButtonClick}>
-                  Update
+                  Update/Modify
                 </Button>
                 <Button type="link" onClick={handleDeleteButtonClick} danger>
-                  Delete
+                  Delete/Undefine
                 </Button>
+                <Button type="link" onClick={handleRunButtonClick}>
+                  Run Engine
+                </Button>
+                <Dropdown overlay={dropdownMenu}>
+                  <a
+                    className="ant-dropdown-link"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Other <DownOutlined />
+                  </a>
+                </Dropdown>
               </Space>
             </Col>
             <Col span={3}>
@@ -360,37 +568,6 @@ function App() {
                     width: "100%",
                   }}
                 >
-                  <TabPane
-                    tab="Setup"
-                    key="setup"
-                    style={{
-                      paddingTop: 10,
-                      paddingLeft: 40,
-                      paddingRight: 40,
-                    }}
-                  >
-                    <Space direction="vertical">
-                      <Input
-                        placeholder="server IP:PORT"
-                        allowClear
-                        onChange={() => {}}
-                      />
-
-                      {!isConnected ? (
-                        <Button type="primary" onClick={handleOnConnect}>
-                          Connect
-                        </Button>
-                      ) : (
-                        <Button
-                          type="primary"
-                          danger
-                          onClick={handleOnDisconenct}
-                        >
-                          Disconnect
-                        </Button>
-                      )}
-                    </Space>
-                  </TabPane>
                   <TabPane tab="DSDs" key="dsds">
                     <DSDList
                       ref={dsdsList}

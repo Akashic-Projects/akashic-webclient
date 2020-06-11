@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useRef,
+  useState,
   forwardRef,
   useImperativeHandle,
 } from "react";
@@ -24,6 +25,7 @@ const getAceInstance = () => {
   return ace;
 };
 const ace = getAceInstance();
+var Range = ace.require("ace/range").Range;
 
 const AceEditor = forwardRef((props, ref) => {
   let editorEl = useRef(null);
@@ -32,10 +34,13 @@ const AceEditor = forwardRef((props, ref) => {
   let editor = useRef(null);
   let markerIDs = useRef([]);
 
+  const [oldEditorTextLength, setOldEditorTextLength] = useState("");
+
   useImperativeHandle(ref, () => ({
     setEditorText: (text) => {
       editor.current.setValue(text, 1);
     },
+    addMarkers: addMarkers,
   }));
 
   const handleOnClick = (e) => {
@@ -68,49 +73,63 @@ const AceEditor = forwardRef((props, ref) => {
   const handleOnChange = (e) => {
     props.onTextChange(editor.current.getValue());
 
-    if (
-      editor.current.getValue()[editor.current.getValue().length - 1] !== "?"
-    ) {
-      return;
-    }
+    // // Start new search
+    // let searchRegex = /\?{2,}/g;
+    // editor.current.findAll(searchRegex, {
+    //   backwards: false,
+    //   wrap: false,
+    //   caseSensitive: true,
+    //   wholeWord: true,
+    //   regExp: true,
+    //   preventScroll: false,
+    // });
+    // let ranges = editor.current.getSelection().getAllRanges();
+    // editor.current.getSelection().clearSelection();
+    // editor.current.selection.moveCursorToPosition(e.start);
+    // let allMarekrs = editor.current.session.getMarkers(false);
+    // console.log("Markeri: ");
+    // console.log(allMarekrs);
+    // // Reset marker list
+    // resetMarkerList();
+    // // Add merkers to the editor
+    // ranges.forEach((el) => {
+    //   if (Math.abs(el.start.column - el.end.column) >= 2) {
+    //     // Add marker to editor
+    //     let markerID = editor.current.session.addMarker(el, "ace_step", "text");
+    //     // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
+    //     // Add marker ID to marker list
+    //     markerIDs.current = [...markerIDs.current, markerID];
+    //     console.log("Rejndzevi: ");
+    //     console.log(ranges);
+    //   }
+    // });
+  };
 
-    // Start new search
-    let searchRegex = /\?{2,}/g;
-    editor.current.findAll(searchRegex, {
-      backwards: false,
-      wrap: false,
-      caseSensitive: true,
-      wholeWord: true,
-      regExp: true,
-      preventScroll: false,
+  const addMarkers = (ranges) => {
+    resetMarkerList();
+
+    ranges = ranges.map((item) => {
+      let startRow = item["data"]["line_start"] - 1;
+      let startColumn = item["data"]["col_start"] - 1;
+      let endRow = item["data"]["line_end"] - 1;
+      let endColumn = item["data"]["col_end"] - 1;
+      return new Range(startRow, startColumn, endRow, endColumn);
     });
+    console.log("Genrisani Rejndzevi: ");
+    console.log(ranges);
 
-    let ranges = editor.current.getSelection().getAllRanges();
+    ranges.forEach((el) => {
+      // Add marker to editor
+      let markerID = editor.current.session.addMarker(el, "ace_step", "text");
+      // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
 
-    editor.current.getSelection().clearSelection();
-    editor.current.selection.moveCursorToPosition(e.start);
+      // Add marker ID to marker list
+      markerIDs.current = [...markerIDs.current, markerID];
+    });
 
     let allMarekrs = editor.current.session.getMarkers(false);
     console.log("Markeri: ");
     console.log(allMarekrs);
-
-    // Reset marker list
-    resetMarkerList();
-
-    // Add merkers to the editor
-    ranges.forEach((el) => {
-      if (Math.abs(el.start.column - el.end.column) >= 2) {
-        // Add marker to editor
-        let markerID = editor.current.session.addMarker(el, "ace_step", "text");
-        // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
-
-        // Add marker ID to marker list
-        markerIDs.current = [...markerIDs.current, markerID];
-
-        console.log("Rejndzevi: ");
-        console.log(ranges);
-      }
-    });
   };
 
   useEffect(() => {

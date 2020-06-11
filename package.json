@@ -15,7 +15,8 @@
     "react-dom": "^16.13.1",
     "react-highlight-words": "^0.16.0",
     "react-resize-panel": "^0.3.5",
-    "react-scripts": "3.4.1"
+    "react-scripts": "3.4.1",
+    "uuid": "^8.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
