@@ -6,7 +6,7 @@ import {
   Typography,
   Button,
   Space,
-  Input,
+  Modal,
   Tabs,
   Row,
   Col,
@@ -25,6 +25,7 @@ import classNames from "classnames/bind";
 import AceEditor from "./components/AceEditor";
 import RuleList from "./components/RuleList";
 import DSDList from "./components/DSDList";
+import AssistanceModal from "./components/AssistanceModal";
 
 import Constsnts from "./constants/networking";
 
@@ -34,8 +35,8 @@ const { TabPane } = Tabs;
 
 const cx = classNames.bind(style);
 
-function App() {
-  const [currentTabKey, setCurrentTabKey] = useState("0");
+const App = () => {
+  const [currentTabKey, setCurrentTabKey] = useState("dsds");
 
   const [editorText, setEditorText] = useState("");
   const [editorCurPos, setEditorCurPos] = useState({ ln: 1, col: 1 });
@@ -45,13 +46,66 @@ function App() {
 
   const [logEntries, setLogEntries] = useState([]);
 
+  const results = useRef([]);
+  const resultChoice = useRef(null);
+  const [resultsToShow, setResultsToShow] = useState([]);
+
+  const [assModalVisible, setAssModalVisible] = useState(false);
+
   const myEditorRef = useRef();
   const dsdsList = useRef();
   const rulesList = useRef();
   const logList = useRef();
 
+  const endAssistance = () => {
+    results.current = [];
+    setResultsToShow([]);
+    setAssModalVisible(false);
+    myEditorRef.current.resetMarkerList();
+  };
+
+  const handleEditorCodeClick = (pos) => {
+    let showModal = false;
+    let out_results = [];
+    results.current.forEach((result) => {
+      console.log("RESULTS:");
+      console.log(result);
+      console.log("POS:");
+      console.log(pos);
+
+      if (
+        pos.row >= result["data"]["line_start"] - 1 &&
+        pos.row <= result["data"]["line_end"] - 1 &&
+        pos.column >= result["data"]["col_start"] - 1 &&
+        pos.column <= result["data"]["col_end"] - 1
+      ) {
+        showModal = true;
+        out_results = [...out_results, result];
+        console.log("ok");
+      }
+      console.log("-------------");
+    });
+    setResultsToShow(out_results);
+    setAssModalVisible(showModal);
+  };
+
+  const handleModalOk = (e) => {
+    myEditorRef.current.replaceMarker(resultChoice.current);
+    setAssModalVisible(false);
+  };
+
+  const handleModalCancel = (e) => {
+    setAssModalVisible(false);
+  };
+
+  const handleAssModalSelectionChange = (record) => {
+    resultChoice.current = record;
+    console.log(record);
+  };
+
   const handleOnTabChange = (key) => {
     setCurrentTabKey(key);
+    endAssistance();
   };
 
   const handleOnEditorTextChange = (text) => {
@@ -65,21 +119,23 @@ function App() {
   const handleDSDSelectionChange = (record) => {
     setSelectedDSD(record);
     myEditorRef.current.setEditorText(JSON.stringify(record.dsd, null, "\t"));
+    endAssistance();
   };
 
   const handleRuleSelectionChange = (record) => {
     setSelectedRule(record);
     myEditorRef.current.setEditorText(JSON.stringify(record.rule, null, "\t"));
+    endAssistance();
   };
 
   const addLogEntry = (response, include_data = false) => {
-    console.log(response);
     if (
+      !response ||
       !response.hasOwnProperty("data") ||
       !response.data.hasOwnProperty("meta")
     ) {
       message.error("----Unexpected error. Malformed JSON probably.");
-      return;
+      return 1;
     }
     setLogEntries([response.data.meta, ...logEntries]);
 
@@ -92,16 +148,14 @@ function App() {
   };
 
   const errorRespHandler = (err, customMessage) => {
-    console.log("ERR");
-    console.log(err);
-    console.log(customMessage);
     if (
+      !err ||
       !err.hasOwnProperty("response") ||
       !err.response.hasOwnProperty("data")
     ) {
       message.error("Unexpected error. Malformed JSON probably.");
       message.error(err);
-      return 0;
+      return 1;
     }
     if (typeof err.response !== "undefined" && err.response.status === 400) {
       addLogEntry(err.response);
@@ -130,7 +184,7 @@ function App() {
   const loadAll = (url) => {
     return axios({
       url,
-      method: "GET",
+      method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -147,7 +201,7 @@ function App() {
       );
   };
 
-  const getTemplates = (url) => {
+  const getAll = (url, what) => {
     return axios({
       url,
       method: "GET",
@@ -160,58 +214,65 @@ function App() {
         addLogEntry(response, true);
       })
       .catch((err) =>
-        errorRespHandler(
-          err,
-          "Internal error while getting all tempalte names."
-        )
+        errorRespHandler(err, `Internal error while getting all ${what}.`)
       );
   };
 
-  const getRules = (url) => {
-    return axios({
-      url,
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => {
-        addLogEntry(response, true);
-      })
-      .catch((err) =>
-        errorRespHandler(err, "Internal error while getting all rule names.")
-      );
-  };
-
-  const responseToMarkers = (response) => {
-    if (
-      !response.hasOwnProperty("data") ||
-      !response.data.hasOwnProperty("meta")
-    ) {
+  const responseToMarkers = (data) => {
+    if (!data.hasOwnProperty("meta")) {
       message.error("----Unexpected error. Malformed JSON probably.");
       return;
     }
-    myEditorRef.current.addMarkers(response.data.data);
+    // Prepare query results (isolate unique positions)
+    let dict = {};
+    let adj_results = [];
+    data.data["query_results"].forEach((el) => {
+      const hash =
+        el["data"]["line_start"] +
+        "-" +
+        el["data"]["col_start"] +
+        "-" +
+        el["data"]["line_end"] +
+        "-" +
+        el["data"]["col_end"];
+
+      el["hash"] = hash;
+      el["key"] = uuidv4();
+      el["value"] = el["data"]["value"];
+
+      dict[hash] = el;
+      adj_results = [...adj_results, el];
+    });
+    myEditorRef.current.addMarkers(Object.values(dict));
+    return adj_results;
   };
 
-  const assist = (url) => {
+  //TODO: Make option in other to reset engine
+  //TODO: In item of rule list add indicator to show if rule is in engine or not
+  const assist = (url, content) => {
     return axios({
       url,
-      method: "GET",
+      method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
+      data: content,
     })
       .then((response) => {
-        responseToMarkers(response);
-        addLogEntry(response, true);
+        return response.data;
+      })
+      .then((data) => {
+        myEditorRef.current.setEditorText(
+          JSON.stringify(data.data["rule"], null, "\t")
+        );
+        let adj_results = responseToMarkers(data);
+        results.current = adj_results;
       })
       .catch((err) => errorRespHandler(err, "Internal error while assisting."));
   };
 
-  const create = (url, content, toReLoad) => {
+  const create = (url, content, toReLoad, type) => {
     return axios({
       url,
       method: "POST",
@@ -223,14 +284,17 @@ function App() {
     })
       .then((response) => {
         addLogEntry(response);
+        myEditorRef.current.setEditorText(
+          JSON.stringify(response.data.data[type], null, "\t")
+        );
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
-        errorRespHandler(err, "Internal error while creating new DSD.")
+        errorRespHandler(err, `Internal error while creating new ${type}.`)
       );
   };
 
-  const update = (url, content, toReLoad) => {
+  const update = (url, content, toReLoad, type) => {
     return axios({
       url,
       method: "PUT",
@@ -242,14 +306,17 @@ function App() {
     })
       .then((response) => {
         addLogEntry(response);
+        myEditorRef.current.setEditorText(
+          JSON.stringify(response.data.data["rule"], null, "\t")
+        );
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
-        errorRespHandler(err, "Internal error while updating DSD.")
+        errorRespHandler(err, `Internal error while updating ${type}.`)
       );
   };
 
-  const deletee = (url, toReLoad) => {
+  const deletee = (url, toReLoad, type) => {
     return axios({
       url,
       method: "DELETE",
@@ -262,18 +329,8 @@ function App() {
       })
       .then(() => toReLoad.current.reLoad())
       .catch((err) =>
-        errorRespHandler(err, "Internal error while deleting DSD.")
+        errorRespHandler(err, `Internal error while deleting ${type}.`)
       );
-  };
-
-  const typeToColor = (type) => {
-    if (type === "SUCCESS") {
-      return "green";
-    } else if (type === "INFO") {
-      return "blue";
-    } else if (type === "ERROR") {
-      return "red";
-    }
   };
 
   const handleRunButtonClick = () => {
@@ -281,24 +338,36 @@ function App() {
     run(uri);
   };
 
-  const handleLoadButtonClick = () => {
-    const uri = `${Constsnts.API_BASE}/load-all`;
+  const handleLoadTemplatesButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/load-all-templates`;
+    loadAll(uri);
+  };
+
+  const handleLoadRulesButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/load-all-rules`;
     loadAll(uri);
   };
 
   const handleGetTempaltesButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/all-template-names`;
-    getTemplates(uri);
+    getAll(uri, "tempalte names");
   };
 
   const handleGetRulesButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/all-rule-names`;
-    getRules(uri);
+    getAll(uri, "rule names");
+  };
+
+  const handleGetFactsButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/all-facts`;
+    getAll(uri, "facts");
   };
 
   const handleAssistButtonClick = () => {
-    const uri = `${Constsnts.API_BASE}/assist`;
-    assist(uri);
+    if (currentTabKey === "rules" && selectedRule != null) {
+      const uri = `${Constsnts.API_BASE}/assist`;
+      assist(uri, editorText);
+    }
   };
 
   const handleViewTranspiledCodeButtonClick = () => {
@@ -312,30 +381,30 @@ function App() {
   const handleCreateButtonClick = () => {
     if (currentTabKey === "dsds") {
       const uri = `${Constsnts.API_BASE}/dsds`;
-      create(uri, editorText, dsdsList);
+      create(uri, editorText, dsdsList, "dsd");
     } else if (currentTabKey === "rules") {
       const uri = `${Constsnts.API_BASE}/rules`;
-      create(uri, editorText, rulesList);
+      create(uri, editorText, rulesList, "rule");
     }
   };
 
   const handleUpdateButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
-      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      update(uri, editorText, dsdsList);
+      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["dsd-name"];
+      update(uri, editorText, dsdsList, "dsd");
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      update(uri, editorText, rulesList);
+      update(uri, editorText, rulesList, "rule");
     }
   };
 
   const handleDeleteButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
-      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["model-name"];
-      deletee(uri, dsdsList);
+      const uri = `${Constsnts.API_BASE}/dsds/` + selectedDSD["dsd-name"];
+      deletee(uri, dsdsList, "dsd");
     } else if (currentTabKey === "rules" && selectedRule != null) {
       const uri = `${Constsnts.API_BASE}/rules/` + selectedRule["rule-name"];
-      deletee(uri, rulesList);
+      deletee(uri, rulesList, "rule");
     }
   };
 
@@ -400,6 +469,16 @@ function App() {
       </Row>
     </div>
   );
+
+  const typeToColor = (type) => {
+    if (type === "SUCCESS") {
+      return "green";
+    } else if (type === "INFO") {
+      return "blue";
+    } else if (type === "ERROR") {
+      return "red";
+    }
+  };
 
   const logViewer = (
     <ResizePanel
@@ -477,23 +556,19 @@ function App() {
 
   const dropdownMenu = (
     <Menu>
-      <Menu.Item>
-        <a onClick={handleViewTranspiledCodeButtonClick}>
-          View transpiled code
-        </a>
+      <Menu.Item onClick={handleViewTranspiledCodeButtonClick}>
+        View transpiled code
       </Menu.Item>
-      <Menu.Item>
-        <a onClick={handleGetRulesButtonClick}>Get all rules in engine</a>
+      <Menu.Item onClick={handleGetRulesButtonClick}>Get all rules</Menu.Item>
+      <Menu.Item onClick={handleGetTempaltesButtonClick}>
+        Get all tempaltes
       </Menu.Item>
-      <Menu.Item>
-        <a onClick={handleGetTempaltesButtonClick}>
-          Get all tempaltes in engine
-        </a>
+      <Menu.Item onClick={handleGetFactsButtonClick}>Get all facts</Menu.Item>
+      <Menu.Item onClick={handleLoadTemplatesButtonClick} danger>
+        Load all tempaltes into engine
       </Menu.Item>
-      <Menu.Item>
-        <a onClick={handleLoadButtonClick}>
-          Load all tempaltes and rules in engine
-        </a>
+      <Menu.Item onClick={handleLoadRulesButtonClick} danger={true}>
+        Load all rules into engine
       </Menu.Item>
     </Menu>
   );
@@ -522,6 +597,17 @@ function App() {
             </Col>
             <Col span={15}>
               <Space size={"small"}>
+                <Modal
+                  title="Basic Modal"
+                  visible={assModalVisible}
+                  onOk={handleModalOk}
+                  onCancel={handleModalCancel}
+                >
+                  <AssistanceModal
+                    data={resultsToShow}
+                    onSelectionChange={handleAssModalSelectionChange}
+                  />
+                </Modal>
                 <Button type="link" onClick={handleAssistButtonClick}>
                   Assist me
                 </Button>
@@ -593,6 +679,7 @@ function App() {
                 ref={myEditorRef}
                 onTextChange={handleOnEditorTextChange}
                 onCursorPosChange={handleOnEditorCursorChange}
+                onClick={handleEditorCodeClick}
                 style={{ height: "100%", width: "100%" }}
                 text={editorText}
               />
@@ -604,6 +691,6 @@ function App() {
       </Layout>
     </Layout>
   );
-}
+};
 
 export default App;

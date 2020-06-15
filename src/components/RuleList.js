@@ -50,7 +50,6 @@ const RuleList = forwardRef((props, ref) => {
 
   const errorRespHandler = (err, customMessage) => {
     if (typeof err.response !== "undefined" && err.response.status === 400) {
-      console.log(err.response);
       props.onAddLogEntry(err.response);
     } else {
       message.error(customMessage + " Message: " + err.message);

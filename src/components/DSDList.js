@@ -5,19 +5,9 @@ import React, {
   useImperativeHandle,
 } from "react";
 import axios from "axios";
-import {
-  Table,
-  Input,
-  Space,
-  Button,
-  Switch,
-  Spin,
-  message,
-  Typography,
-} from "antd";
+import { Table, Input, Space, Button, Spin, message, Typography } from "antd";
 import Highlighter from "react-highlight-words";
 import { SearchOutlined } from "@ant-design/icons";
-import { CloseOutlined, CheckOutlined } from "@ant-design/icons";
 
 import Constsnts from "../constants/networking";
 
@@ -50,7 +40,6 @@ const DSDList = forwardRef((props, ref) => {
 
   const errorRespHandler = (err, customMessage) => {
     if (typeof err.response !== "undefined" && err.response.status === 400) {
-      console.log(err.response);
       props.onAddLogEntry(err.response);
     } else {
       message.error(customMessage + " Message: " + err.message);
@@ -140,7 +129,7 @@ const DSDList = forwardRef((props, ref) => {
           />
           <br />
           <Text style={{ color: "black", fontSize: 12 }}>
-            Unique DSD model name: {row["model-name"]}
+            Unique DSD model name: {row["dsd-name"]}
           </Text>
         </div>
       ) : (
@@ -148,7 +137,7 @@ const DSDList = forwardRef((props, ref) => {
           <Text>{text}</Text>
           <br />
           <Text style={{ color: "black", fontSize: 12 }}>
-            Unique DSD model name: {row["model-name"]}
+            Unique DSD model name: {row["dsd-name"]}
           </Text>
         </div>
       ),

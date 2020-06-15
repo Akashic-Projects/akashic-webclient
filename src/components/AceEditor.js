@@ -34,33 +34,40 @@ const AceEditor = forwardRef((props, ref) => {
   let editor = useRef(null);
   let markerIDs = useRef([]);
 
-  const [oldEditorTextLength, setOldEditorTextLength] = useState("");
-
   useImperativeHandle(ref, () => ({
     setEditorText: (text) => {
       editor.current.setValue(text, 1);
     },
     addMarkers: addMarkers,
+    replaceMarker: replaceMarker,
+    resetMarkerList: resetMarkerList,
   }));
+
+  const replaceMarker = (result) => {
+    console.log("RESULT IN ACE: ");
+    console.log(result);
+
+    console.log("MARKERS IN ACE: ");
+    let allMarekrs = editor.current.session.getMarkers(false);
+    Object.values(allMarekrs).forEach((marker) => {
+      if (
+        marker.hasOwnProperty("range") &&
+        marker.range.hasOwnProperty("hash") &&
+        marker.range.hash === result.hash
+      ) {
+        console.log(marker);
+        console.log(marker.range.hash);
+        console.log("--------------");
+        editor.current.session.removeMarker(marker.id);
+        editor.current.session.replace(marker.range, String(result.value));
+      }
+    });
+  };
 
   const handleOnClick = (e) => {
     let pos = editor.current.getCursorPosition();
-    let token = editor.current.session.getTokenAt(pos.row, pos.column);
-
-    if (token) {
-      console.log("Clicked on: " + token.value);
-    }
-
-    // if (/\bkeyword\b/.test(token.type))
-    //   console.log(token.value, "is a keyword");
-
-    // // add highlight for the clicked token
-    // let range = new Range(
-    //   pos.row,
-    //   token.start,
-    //   pos.row,
-    //   token.start + token.value.length
-    // );
+    //let token = editor.current.session.getTokenAt(pos.row, pos.column);
+    props.onClick(pos);
   };
 
   const resetMarkerList = () => {
@@ -72,64 +79,34 @@ const AceEditor = forwardRef((props, ref) => {
 
   const handleOnChange = (e) => {
     props.onTextChange(editor.current.getValue());
-
-    // // Start new search
-    // let searchRegex = /\?{2,}/g;
-    // editor.current.findAll(searchRegex, {
-    //   backwards: false,
-    //   wrap: false,
-    //   caseSensitive: true,
-    //   wholeWord: true,
-    //   regExp: true,
-    //   preventScroll: false,
-    // });
-    // let ranges = editor.current.getSelection().getAllRanges();
-    // editor.current.getSelection().clearSelection();
-    // editor.current.selection.moveCursorToPosition(e.start);
-    // let allMarekrs = editor.current.session.getMarkers(false);
-    // console.log("Markeri: ");
-    // console.log(allMarekrs);
-    // // Reset marker list
-    // resetMarkerList();
-    // // Add merkers to the editor
-    // ranges.forEach((el) => {
-    //   if (Math.abs(el.start.column - el.end.column) >= 2) {
-    //     // Add marker to editor
-    //     let markerID = editor.current.session.addMarker(el, "ace_step", "text");
-    //     // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
-    //     // Add marker ID to marker list
-    //     markerIDs.current = [...markerIDs.current, markerID];
-    //     console.log("Rejndzevi: ");
-    //     console.log(ranges);
-    //   }
-    // });
   };
 
-  const addMarkers = (ranges) => {
+  const addMarkers = (ranges_new) => {
     resetMarkerList();
 
-    ranges = ranges.map((item) => {
+    ranges_new = ranges_new.map((item) => {
       let startRow = item["data"]["line_start"] - 1;
       let startColumn = item["data"]["col_start"] - 1;
       let endRow = item["data"]["line_end"] - 1;
       let endColumn = item["data"]["col_end"] - 1;
-      return new Range(startRow, startColumn, endRow, endColumn);
+      let aceRange = new Range(startRow, startColumn, endRow, endColumn);
+      aceRange["hash"] = item["hash"];
+      return aceRange;
     });
-    console.log("Genrisani Rejndzevi: ");
-    console.log(ranges);
+    // console.log("Genrisani Rejndzevi: ");
+    // console.log(ranges_new);
 
-    ranges.forEach((el) => {
+    ranges_new.forEach((el) => {
       // Add marker to editor
       let markerID = editor.current.session.addMarker(el, "ace_step", "text");
-      // let markerID = editor.current.session.addMarker(el, "ace_bracket", "text");
 
       // Add marker ID to marker list
       markerIDs.current = [...markerIDs.current, markerID];
     });
 
-    let allMarekrs = editor.current.session.getMarkers(false);
-    console.log("Markeri: ");
-    console.log(allMarekrs);
+    // let allMarekrs = editor.current.session.getMarkers(false);
+    // console.log("Markeri: ");
+    // console.log(allMarekrs);
   };
 
   useEffect(() => {
