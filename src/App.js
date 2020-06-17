@@ -134,7 +134,7 @@ const App = () => {
       !response.hasOwnProperty("data") ||
       !response.data.hasOwnProperty("meta")
     ) {
-      message.error("----Unexpected error. Malformed JSON probably.");
+      message.error("Unexpected error. Malformed JSON probably.");
       return 1;
     }
     setLogEntries([response.data.meta, ...logEntries]);
@@ -159,6 +159,16 @@ const App = () => {
     }
     if (typeof err.response !== "undefined" && err.response.status === 400) {
       addLogEntry(err.response);
+      console.log("help");
+      console.log(err.response);
+      if (
+        err.response.data.hasOwnProperty("data") &&
+        err.response.data.data != null
+      ) {
+        myEditorRef.current.setEditorText(
+          JSON.stringify(err.response.data.data, null, "\t")
+        );
+      }
     } else {
       message.error(customMessage + " Message: " + err.message);
     }
@@ -220,7 +230,7 @@ const App = () => {
 
   const responseToMarkers = (data) => {
     if (!data.hasOwnProperty("meta")) {
-      message.error("----Unexpected error. Malformed JSON probably.");
+      message.error("Unexpected error. Malformed JSON probably.");
       return;
     }
     // Prepare query results (isolate unique positions)
@@ -307,7 +317,7 @@ const App = () => {
       .then((response) => {
         addLogEntry(response);
         myEditorRef.current.setEditorText(
-          JSON.stringify(response.data.data["rule"], null, "\t")
+          JSON.stringify(response.data.data[type], null, "\t")
         );
       })
       .then(() => toReLoad.current.reLoad())
