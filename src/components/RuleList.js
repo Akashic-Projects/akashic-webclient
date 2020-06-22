@@ -161,18 +161,10 @@ const RuleList = forwardRef((props, ref) => {
             autoEscape
             textToHighlight={text.toString()}
           />
-          <br />
-          <Text style={{ color: "black", fontSize: 12 }}>
-            Salience: {row.rule.salience}
-          </Text>
         </div>
       ) : (
         <div>
           <Text>{text}</Text>
-          <br />
-          <Text style={{ color: "black", fontSize: 12 }}>
-            Salience: {row.rule.salience}
-          </Text>
         </div>
       ),
   });
@@ -185,7 +177,16 @@ const RuleList = forwardRef((props, ref) => {
       ...getColumnSearchProps("rule-name"),
     },
     {
-      title: "Activity",
+      title: "Salience",
+      dataIndex: "salience",
+      width: 200,
+      sorter: {
+        compare: (a, b) => a.salience - b.salience,
+        multiple: 1,
+      },
+    },
+    {
+      title: "In Engine?",
       dataIndex: "active",
       width: 60,
       render: (value, row) => (
@@ -214,7 +215,7 @@ const RuleList = forwardRef((props, ref) => {
         dataSource={rules}
         pagination={{
           position: ["bottomCenter"],
-          defaultPageSize: 5,
+          defaultPageSize: 9,
         }}
         showHeader={true}
         onRow={(record) => ({

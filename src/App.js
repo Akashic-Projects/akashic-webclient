@@ -159,8 +159,6 @@ const App = () => {
     }
     if (typeof err.response !== "undefined" && err.response.status === 400) {
       addLogEntry(err.response);
-      console.log("help");
-      console.log(err.response);
       if (
         err.response.data.hasOwnProperty("data") &&
         err.response.data.data != null
@@ -174,7 +172,7 @@ const App = () => {
     }
   };
 
-  const run = (url) => {
+  const run = (url, toReLoad) => {
     return axios({
       url,
       method: "GET",
@@ -186,6 +184,7 @@ const App = () => {
       .then((response) => {
         addLogEntry(response, true);
       })
+      .then(() => toReLoad.current.reLoad())
       .catch((err) =>
         errorRespHandler(err, "Internal error while running engine")
       );
@@ -362,7 +361,7 @@ const App = () => {
 
   const handleRunButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/run`;
-    run(uri);
+    run(uri, rulesList);
   };
 
   const handleLoadTemplatesButtonClick = () => {
@@ -404,9 +403,9 @@ const App = () => {
 
   const handleViewTranspiledCodeButtonClick = () => {
     if (currentTabKey === "dsds" && selectedDSD != null) {
-      setLogEntries([selectedDSD["clips_code"], ...logEntries]);
+      setLogEntries([selectedDSD["clips-code"], ...logEntries]);
     } else if (currentTabKey === "rules" && selectedRule != null) {
-      setLogEntries([selectedRule["clips_code"], ...logEntries]);
+      setLogEntries([selectedRule["clips-code"], ...logEntries]);
     }
   };
 
@@ -589,21 +588,21 @@ const App = () => {
   const dropdownMenu = (
     <Menu>
       <Menu.Item onClick={handleViewTranspiledCodeButtonClick}>
-        View transpiled code
+        ^ View transpiled code
       </Menu.Item>
-      <Menu.Item onClick={handleGetRulesButtonClick}>Get all rules</Menu.Item>
+      <Menu.Item onClick={handleGetRulesButtonClick}>+ Get all rules</Menu.Item>
       <Menu.Item onClick={handleGetTempaltesButtonClick}>
-        Get all tempaltes
+        + Get all tempaltes
       </Menu.Item>
-      <Menu.Item onClick={handleGetFactsButtonClick}>Get all facts</Menu.Item>
+      <Menu.Item onClick={handleGetFactsButtonClick}>+ Get all facts</Menu.Item>
+      <Menu.Item onClick={handleLoadTemplatesButtonClick}>
+        > Load all tempaltes into engine
+      </Menu.Item>
+      <Menu.Item onClick={handleLoadRulesButtonClick}>
+        > Load all rules into engine
+      </Menu.Item>
       <Menu.Item onClick={handleReloadEnvButtonClick} danger>
-        Clear whole enigne enviroment
-      </Menu.Item>
-      <Menu.Item onClick={handleLoadTemplatesButtonClick} danger>
-        Load all tempaltes into engine
-      </Menu.Item>
-      <Menu.Item onClick={handleLoadRulesButtonClick} danger={true}>
-        Load all rules into engine
+        X Clear whole enigne enviroment
       </Menu.Item>
     </Menu>
   );
@@ -647,13 +646,13 @@ const App = () => {
                   Assist me
                 </Button>
                 <Button type="link" onClick={handleCreateButtonClick}>
-                  Create/Define
+                  Create
                 </Button>
                 <Button type="link" onClick={handleUpdateButtonClick}>
-                  Update/Modify
+                  Update
                 </Button>
                 <Button type="link" onClick={handleDeleteButtonClick} danger>
-                  Delete/Undefine
+                  Delete
                 </Button>
                 <Button type="link" onClick={handleRunButtonClick}>
                   Run Engine
@@ -677,7 +676,7 @@ const App = () => {
       <Layout>
         <div className={cx("container")}>
           <div className={cx("body")}>
-            <ResizePanel direction="e" style={{ flexGrow: "1" }}>
+            <ResizePanel direction="e" style={{ flexGrow: "1", width: "7%" }}>
               <div className={cx("sidebar", "panel")}>
                 <Tabs
                   defaultActiveKey="0"
