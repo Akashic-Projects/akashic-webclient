@@ -257,7 +257,6 @@ const App = () => {
     return adj_results;
   };
 
-  //TODO: Make option in other to reset engine
   //TODO: In item of rule list add indicator to show if rule is in engine or not
   const assist = (url, content) => {
     return axios({
@@ -280,6 +279,24 @@ const App = () => {
         results.current = adj_results;
       })
       .catch((err) => errorRespHandler(err, "Internal error while assisting."));
+  };
+
+  const reloadEnv = (url) => {
+    return axios({
+      url,
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      data: null,
+    })
+      .then((response) => {
+        addLogEntry(response);
+      })
+      .catch((err) =>
+        errorRespHandler(err, "Internal error while reloading env.")
+      );
   };
 
   const create = (url, content, toReLoad, type) => {
@@ -378,6 +395,11 @@ const App = () => {
       const uri = `${Constsnts.API_BASE}/assist`;
       assist(uri, editorText);
     }
+  };
+
+  const handleReloadEnvButtonClick = () => {
+    const uri = `${Constsnts.API_BASE}/reload-env`;
+    reloadEnv(uri);
   };
 
   const handleViewTranspiledCodeButtonClick = () => {
@@ -574,6 +596,9 @@ const App = () => {
         Get all tempaltes
       </Menu.Item>
       <Menu.Item onClick={handleGetFactsButtonClick}>Get all facts</Menu.Item>
+      <Menu.Item onClick={handleReloadEnvButtonClick} danger>
+        Clear whole enigne enviroment
+      </Menu.Item>
       <Menu.Item onClick={handleLoadTemplatesButtonClick} danger>
         Load all tempaltes into engine
       </Menu.Item>
