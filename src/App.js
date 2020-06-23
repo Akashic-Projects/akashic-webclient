@@ -148,13 +148,22 @@ const App = () => {
   };
 
   const errorRespHandler = (err, customMessage) => {
+    console.log(err);
+    if (err === undefined || err === null) {
+      message.error(`Unexpected error. ${customMessage}`);
+      return 1;
+    }
+    if (typeof err !== "object" || err.message === "Network Error") {
+      message.error(`Unexpected error. ${customMessage}`);
+      return 1;
+    }
     if (
-      !err ||
       !err.hasOwnProperty("response") ||
       !err.response.hasOwnProperty("data")
     ) {
-      message.error("Unexpected error. Malformed JSON probably.");
-      message.error(err);
+      message.error(
+        `Unexpected error. Malformed JSON probably. ${customMessage}`
+      );
       return 1;
     }
     if (typeof err.response !== "undefined" && err.response.status === 400) {
@@ -190,7 +199,7 @@ const App = () => {
       );
   };
 
-  const loadAll = (url) => {
+  const loadAll = (url, toReload) => {
     return axios({
       url,
       method: "POST",
@@ -202,6 +211,7 @@ const App = () => {
       .then((response) => {
         addLogEntry(response);
       })
+      .then(() => (toReload != null ? toReload.current.reLoad() : 1))
       .catch((err) =>
         errorRespHandler(
           err,
@@ -293,6 +303,7 @@ const App = () => {
       .then((response) => {
         addLogEntry(response);
       })
+      .then(() => rulesList.current.reLoad())
       .catch((err) =>
         errorRespHandler(err, "Internal error while reloading env.")
       );
@@ -366,12 +377,12 @@ const App = () => {
 
   const handleLoadTemplatesButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/load-all-templates`;
-    loadAll(uri);
+    loadAll(uri, null);
   };
 
   const handleLoadRulesButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/load-all-rules`;
-    loadAll(uri);
+    loadAll(uri, rulesList);
   };
 
   const handleGetTempaltesButtonClick = () => {
