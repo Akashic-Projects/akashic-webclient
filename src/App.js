@@ -613,7 +613,7 @@ const App = () => {
         > Load all rules into engine
       </Menu.Item>
       <Menu.Item onClick={handleReloadEnvButtonClick} danger>
-        X Clear whole enigne enviroment
+        X Clear whole enigne environment
       </Menu.Item>
     </Menu>
   );
