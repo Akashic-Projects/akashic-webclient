@@ -385,9 +385,9 @@ const App = () => {
     loadAll(uri, rulesList);
   };
 
-  const handleGetTempaltesButtonClick = () => {
+  const handleGetTemplatesButtonClick = () => {
     const uri = `${Constsnts.API_BASE}/all-template-names`;
-    getAll(uri, "tempalte names");
+    getAll(uri, "template names");
   };
 
   const handleGetRulesButtonClick = () => {
@@ -483,16 +483,6 @@ const App = () => {
               ></Button>
             </Tooltip>
           </div>
-        </Col>
-        <Col span={2} style={{ textAlign: "center" }}>
-          <Text
-            style={{
-              marginLeft: 47,
-            }}
-          >
-            {" "}
-            Logs
-          </Text>
         </Col>
         <Col span={11}>
           <div
@@ -602,12 +592,12 @@ const App = () => {
         ^ View transpiled code
       </Menu.Item>
       <Menu.Item onClick={handleGetRulesButtonClick}>+ Get all rules</Menu.Item>
-      <Menu.Item onClick={handleGetTempaltesButtonClick}>
-        + Get all tempaltes
+      <Menu.Item onClick={handleGetTemplatesButtonClick}>
+        + Get all templates
       </Menu.Item>
       <Menu.Item onClick={handleGetFactsButtonClick}>+ Get all facts</Menu.Item>
       <Menu.Item onClick={handleLoadTemplatesButtonClick}>
-        > Load all tempaltes into engine
+        > Load all templates into engine
       </Menu.Item>
       <Menu.Item onClick={handleLoadRulesButtonClick}>
         > Load all rules into engine
